@@ -1,0 +1,60 @@
+Package: cfomics
+Type: Package
+Title: Counterfactual Causal Inference for Omics Data
+Version: 0.4.0
+Authors@R: c(
+    person("Yusuke", "Matsui",
+           role = c("aut", "cre"),
+           email = "mail.to.matsui@gmail.com")
+  )
+Description: A unified interface for counterfactual causal inference methods
+    designed for omics data analysis. Supports SummarizedExperiment and
+    MultiAssayExperiment data structures from Bioconductor. Implements
+    multiple causal inference backends including DoWhy-GCM, GANITE,
+    DRLearner, CAVAE (Python-based), and GRF, IPW, G-formula (R-native).
+    Provides tools for individual treatment effect (ITE) estimation,
+    average treatment effect (ATE) computation, and counterfactual outcome
+    prediction in high-dimensional biological data.
+License: MIT + file LICENSE
+URL: https://github.com/matsui-lab/counterfactual_agingR
+BugReports: https://github.com/matsui-lab/counterfactual_agingR/issues
+biocViews:
+    Software,
+    StatisticalMethod,
+    GeneExpression,
+    Transcriptomics,
+    Proteomics,
+    Metabolomics
+Depends:
+    R (>= 4.2.0)
+Imports:
+    methods,
+    stats,
+    utils,
+    graphics,
+    Formula,
+    reticulate (>= 1.28),
+    igraph,
+    rlang,
+    cli,
+    glue
+Suggests:
+    SummarizedExperiment,
+    MultiAssayExperiment,
+    S4Vectors,
+    BiocGenerics,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    BiocStyle,
+    ggplot2,
+    gridExtra,
+    grf,
+    ipw,
+    survey,
+    yaml,
+    jsonlite
+VignetteBuilder: knitr
+Encoding: UTF-8
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3

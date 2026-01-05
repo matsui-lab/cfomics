@@ -1,0 +1,149 @@
+---
+title: "Introduction to cfomics with DoWhy-GCM"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to cfomics with DoWhy-GCM}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+CAN_RUN <- requireNamespace("cfomics", quietly = TRUE)
+HAS_PYTHON <- CAN_RUN && cfomics::cf_has_python("dowhy_gcm")
+```
+
+## Overview
+
+This vignette introduces cfomics using the DoWhy-GCM (Graphical Causal Model) method.
+DoWhy requires Python to be configured with the `dowhy` package installed.
+
+**Note:** If Python is not available, you can still use R-native methods like `grf`,
+`ipw`, or `gformula`. See the "Method Comparison" vignette for alternatives.
+
+## Setup
+
+```{r setup, eval=CAN_RUN}
+library(cfomics)
+
+# Check environment status
+cat("Python available:", cf_has_python(), "\n")
+cat("DoWhy available:", cf_has_python("dowhy_gcm"), "\n")
+```
+
+For DoWhy-GCM, you need to set up the Python environment:
+
+```{r python_setup, eval=FALSE}
+# Install the required Python environment (run once)
+cf_install_python_env("dowhy")
+
+# Activate the environment
+cf_use_python_env("dowhy")
+
+# Or use the one-step setup
+setup_python_env("dowhy")
+```
+
+## Synthetic Data Example
+
+We generate a simple dataset where $T$ causes $Y$, and $X$ is a confounder.
+The true Average Treatment Effect (ATE) is **2**.
+
+```{r data}
+set.seed(123)
+n <- 500
+X <- rnorm(n)
+# T depends on X (confounding)
+p_t <- 1 / (1 + exp(-X))
+T <- rbinom(n, 1, p_t)
+# Y depends on T and X, true ATE = 2
+Y <- 2 * T + 0.5 * X + rnorm(n)
+
+data <- data.frame(Y = Y, T = T, X = X)
+summary(data)
+```
+
+## Define the Causal Graph
+
+We use `igraph` to define the Directed Acyclic Graph (DAG):
+- X → T (confounder affects treatment)
+- X → Y (confounder affects outcome)
+- T → Y (treatment affects outcome)
+
+```{r graph}
+library(igraph)
+# X -> T, X -> Y, T -> Y
+g <- graph_from_edgelist(
+  matrix(c("X", "T", "X", "Y", "T", "Y"), ncol = 2, byrow = TRUE)
+)
+plot(g, main = "Causal DAG")
+```
+
+## Fit the Model with DoWhy-GCM
+
+When Python and DoWhy are available:
+
+```{r fit_dowhy, eval=HAS_PYTHON}
+fit <- cf_dowhy(Y ~ T | X, data = data, graph = g)
+summary(fit)
+
+ate <- predict(fit, type = "ate")
+cat("Estimated ATE:", round(ate, 3), "(true value: 2)\n")
+```
+
+```{r fit_dowhy_placeholder, eval=!HAS_PYTHON, echo=FALSE}
+cat("DoWhy is not available in this environment.\n")
+cat("To run this example, install DoWhy with:\n")
+cat("  cf_install_python_env('dowhy')\n")
+cat("  cf_use_python_env('dowhy')\n")
+```
+
+## Alternative: Using R-native Methods
+
+If Python is not available, you can use R-native methods for the same analysis:
+
+```{r fit_gformula, eval=CAN_RUN}
+# G-formula works without any extra packages
+fit_gf <- cf_fit(Y ~ T | X, data = data, method = "gformula")
+summary(fit_gf)
+
+ate_gf <- predict(fit_gf, type = "ate")
+cat("G-formula ATE:", round(ate_gf, 3), "(true value: 2)\n")
+```
+
+## Predictions and Visualization
+
+All methods provide a consistent interface for predictions:
+
+```{r predictions, eval=CAN_RUN}
+# Average Treatment Effect
+ate <- predict(fit_gf, type = "ate")
+
+# Individual Treatment Effects
+ite <- predict(fit_gf, type = "ite")
+
+# Counterfactual outcomes
+y0 <- predict(fit_gf, type = "y0")  # Outcome if untreated
+y1 <- predict(fit_gf, type = "y1")  # Outcome if treated
+
+cat("ATE:", round(ate, 3), "\n")
+cat("ITE range:", round(min(ite), 3), "to", round(max(ite), 3), "\n")
+```
+
+```{r plot, eval=CAN_RUN, fig.width=7, fig.height=5}
+# Visualize ITE distribution
+hist(ite, breaks = 30, main = "Distribution of Individual Treatment Effects",
+     xlab = "ITE", col = "steelblue", border = "white")
+abline(v = mean(ite), col = "red", lwd = 2)
+legend("topright", legend = paste("Mean ITE =", round(mean(ite), 3)),
+       col = "red", lwd = 2)
+```
+
+## Next Steps
+
+- See the "Method Comparison" vignette for comparing different methods
+- See the "DoWhy Advanced" vignette for bootstrap confidence intervals
+- See the "Python Setup" vignette for detailed environment configuration

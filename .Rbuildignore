@@ -1,0 +1,16 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^AUDIT_FINDINGS\.md$
+^AUDIT_ISSUES\.md$
+^PUBLICATION_GAP_TABLE\.md$
+^RELEASE_CHECKLIST\.md$
+^data-raw$
+^renv\.lock$
+^renv$
+^\.github$
+^codecov\.yml$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^LICENSE\.md$
+^cran-comments\.md$

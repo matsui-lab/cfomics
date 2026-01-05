@@ -1,0 +1,227 @@
+---
+title: "Python Environment Setup for cfomics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Python Environment Setup for cfomics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+
+The cfomics package supports multiple causal inference methods, some of which require Python backends. **cfomics does NOT manage Python environments** - users must prepare their own conda/mamba/virtualenv environment with the required dependencies.
+
+This design choice ensures compatibility with HPC environments, GPU setups, and existing conda/mamba workflows.
+
+## Important: User-Managed Python Environments
+
+cfomics expects users to:
+
+1. Create and manage their own Python environment (conda, mamba, or virtualenv)
+2. Install the required Python packages for their chosen method
+3. Configure R to use that environment via `RETICULATE_PYTHON` or `reticulate::use_condaenv()`
+
+## Available Methods and Their Requirements
+
+| Method | Backend | Python Required | Key Dependencies |
+|--------|---------|-----------------|------------------|
+| dowhy_gcm | DoWhy GCM | Yes | dowhy, numpy, pandas, networkx |
+| ganite | GANITE | Yes | tensorflow (GPU recommended) |
+| drlearner | econml | Yes | econml, numpy, pandas |
+| cavae | Pyro | Yes | torch, pyro-ppl (GPU recommended) |
+| grf | grf (R) | No | - |
+| ipw | ipw (R) | No | - |
+| gformula | Base R | No | - |
+
+## Setting Up Your Python Environment
+
+### Option 1: Using conda/mamba (Recommended)
+
+Create a conda environment with the required packages:
+
+```bash
+# For DoWhy GCM method
+conda create -n cfomics_env python=3.11 numpy pandas scikit-learn networkx matplotlib
+conda activate cfomics_env
+pip install dowhy==0.11.1
+
+# For GANITE method (requires TensorFlow)
+pip install tensorflow
+
+# For DRLearner method
+pip install econml
+
+# For CAVAE method
+pip install torch pyro-ppl
+```
+
+### Option 2: Using virtualenv
+
+```bash
+python3 -m venv cfomics_env
+source cfomics_env/bin/activate
+pip install numpy pandas scikit-learn networkx matplotlib dowhy==0.11.1
+
+# Add TensorFlow for GANITE
+pip install tensorflow
+```
+
+## Configuring R to Use Your Python Environment
+
+### Method 1: Environment Variable (Recommended)
+
+Set the `RETICULATE_PYTHON` environment variable before starting R:
+
+```bash
+export RETICULATE_PYTHON=/path/to/your/conda/envs/cfomics_env/bin/python
+```
+
+Or in your `.Renviron` file:
+
+```
+RETICULATE_PYTHON=/path/to/your/conda/envs/cfomics_env/bin/python
+```
+
+### Method 2: In R Session
+
+Configure reticulate at the start of your R session, **before** loading cfomics:
+
+```{r setup_reticulate, eval=FALSE}
+library(reticulate)
+
+# For conda environments
+use_condaenv("cfomics_env", required = TRUE)
+
+# Or for virtualenv
+use_virtualenv("cfomics_env", required = TRUE)
+
+# Or specify Python path directly
+use_python("/path/to/python", required = TRUE)
+
+# Now load cfomics
+library(cfomics)
+```
+
+## GPU Support for GANITE and CAVAE
+
+GANITE and CAVAE methods benefit significantly from GPU acceleration.
+
+### TensorFlow GPU Setup (for GANITE)
+
+Follow the official TensorFlow GPU installation guide:
+https://www.tensorflow.org/install/gpu
+
+Key requirements:
+
+- NVIDIA GPU with CUDA Compute Capability 3.5 or higher
+- CUDA Toolkit (version compatible with your TensorFlow version)
+- cuDNN library
+
+### PyTorch GPU Setup (for CAVAE)
+
+Follow the official PyTorch installation guide:
+https://pytorch.org/get-started/locally/
+
+## Example Workflow
+
+```{r workflow, eval=FALSE}
+library(reticulate)
+
+# Configure Python environment FIRST
+use_condaenv("cfomics_env", required = TRUE)
+
+# Then load cfomics
+library(cfomics)
+library(igraph)
+
+# Create sample data
+set.seed(42)
+n <- 500
+data <- data.frame(
+  X1 = rnorm(n),
+  X2 = rnorm(n),
+  T = rbinom(n, 1, 0.5),
+  Y = numeric(n)
+)
+data$Y <- 1.5 * data$T + 0.8 * data$X1 + rnorm(n)
+
+# Define causal graph
+g <- graph_from_edgelist(rbind(
+  c("X1", "T"), c("T", "Y"), c("X2", "Y")
+))
+
+# Fit model using DoWhy GCM
+fit <- cf_dowhy(Y ~ T | X1 + X2, data = data, graph = g)
+
+# Get results
+ate <- predict(fit, type = "ate")
+print(paste("Estimated ATE:", round(ate, 3)))
+```
+
+## Troubleshooting
+
+### "No Python environment configured" Error
+
+This error means cfomics could not find a configured Python environment. Solutions:
+
+1. Set `RETICULATE_PYTHON` environment variable
+2. Call `reticulate::use_condaenv()` or `reticulate::use_python()` before loading cfomics
+3. Ensure your Python environment has the required packages installed
+
+### "TensorFlow is required for GANITE" Error
+
+GANITE requires TensorFlow. Install it in your Python environment:
+
+```bash
+pip install tensorflow
+```
+
+For GPU support, follow the TensorFlow GPU installation guide.
+
+### Python Environment Not Switching
+
+Once Python is initialized in an R session, it cannot be changed. If you need a different environment:
+
+1. Restart R
+2. Configure the correct environment before any Python calls
+3. Then load cfomics
+
+### HPC Environment Issues
+
+On HPC systems:
+
+1. Load required modules (CUDA, cuDNN) before starting R
+2. Use the cluster's recommended conda/mamba installation
+3. Set `RETICULATE_PYTHON` in your job submission script
+
+## Optional: Helper Functions
+
+cfomics provides optional helper functions for environment management. These are **not called automatically** and are provided for convenience only:
+
+```{r helpers, eval=FALSE}
+# List available environment specifications
+cf_list_python_envs()
+
+# Install a cfomics-managed environment (optional, not recommended for HPC)
+cf_install_python_env(method = "dowhy")
+
+# Use a cfomics-managed environment
+cf_use_python_env(method = "dowhy")
+```
+
+Note: These helper functions create conda environments and may not be suitable for HPC or GPU environments where you need specific CUDA versions or system configurations.
+
+## CI/CD and Testing Notes
+
+In CI/CD environments:
+
+- Tests for Python-based methods (GANITE, CAVAE, DRLearner) will be **skipped** if the required Python packages are not available
+- This is expected behavior and not an error
+- To run these tests, ensure the CI environment has the required Python packages installed

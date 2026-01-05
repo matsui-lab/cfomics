@@ -1,0 +1,225 @@
+---
+title: "Comparing Causal Inference Methods in cfomics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Comparing Causal Inference Methods in cfomics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+# Check if we can run R-only examples
+CAN_RUN_EXAMPLES <- requireNamespace("cfomics", quietly = TRUE)
+```
+
+## Overview
+
+The cfomics package provides a unified interface for multiple causal inference methods. This vignette compares the available methods and provides guidance on when to use each one.
+
+## Quick Start (R-only)
+
+Let's start with a simple example using R-native methods that don't require Python:
+
+```{r setup_data}
+# Generate synthetic data with known treatment effect
+set.seed(123)
+n <- 300
+
+# Covariates
+X1 <- rnorm(n)
+X2 <- rnorm(n)
+
+# Treatment depends on covariates (confounding)
+propensity <- plogis(0.5 * X1 - 0.3 * X2)
+T <- rbinom(n, 1, propensity)
+
+# Outcome with true ATE = 2
+Y <- 1 + 0.5 * X1 + 0.3 * X2 + 2 * T + rnorm(n)
+
+data <- data.frame(Y = Y, T = T, X1 = X1, X2 = X2)
+head(data)
+```
+
+```{r gformula_demo, eval=CAN_RUN_EXAMPLES}
+library(cfomics)
+
+# Fit using G-formula (always available, no external dependencies)
+fit_gf <- cf_fit(Y ~ T | X1 + X2, data = data, method = "gformula")
+summary(fit_gf)
+```
+
+```{r grf_demo, eval=CAN_RUN_EXAMPLES && requireNamespace("grf", quietly = TRUE)}
+# Fit using GRF (if grf package is available)
+fit_grf <- cf_fit(Y ~ T | X1 + X2, data = data, method = "grf")
+summary(fit_grf)
+
+# GRF provides heterogeneous treatment effect estimates
+ite <- predict(fit_grf, type = "ite")
+cat("\nITE summary:\n")
+cat("  Mean:", round(mean(ite), 3), "\n")
+cat("  SD:", round(sd(ite), 3), "\n")
+cat("  Range:", round(min(ite), 3), "to", round(max(ite), 3), "\n")
+```
+
+## Available Methods
+
+The package supports six causal inference methods:
+
+| Method | Type | Python Required | Strengths | Limitations |
+|--------|------|-----------------|-----------|-------------|
+| dowhy_gcm | Graphical Causal Model | Yes | Explicit causal structure, interpretable | Requires DAG specification |
+| drlearner | Double/Debiased ML | Yes | Flexible, handles high-dimensional data | Requires econml |
+| cavae | Variational Autoencoder | Yes | Handles latent confounding | Computationally intensive |
+| grf | Causal Forest | No | Heterogeneous effects, confidence intervals | May overfit with small samples |
+| ipw | Inverse Probability Weighting | No | Simple, well-understood | Assumes no unmeasured confounding |
+| gformula | G-computation | No | Flexible outcome modeling | Relies on correct model specification |
+
+## Method Selection Guide
+
+### When to Use DoWhy-GCM
+
+Use DoWhy-GCM when you have a clear understanding of the causal structure (DAG) and want to leverage that knowledge in your analysis. This method is particularly useful when you want to make explicit causal assumptions and when interpretability is important.
+
+```{r dowhy_example, eval=FALSE}
+library(cfomics)
+library(igraph)
+
+setup_python_env(method = "dowhy")
+
+g <- graph_from_edgelist(rbind(
+  c("X1", "T"), c("T", "Y"), c("X2", "Y")
+))
+
+fit_dowhy <- cf_fit(Y ~ T | X1 + X2, data = data, method = "dowhy_gcm", graph = g)
+```
+
+### When to Use DRLearner
+
+Use DRLearner when you have high-dimensional covariates and want a flexible, doubly-robust estimator. This method combines outcome regression and propensity score weighting for robustness.
+
+```{r drlearner_example, eval=FALSE}
+setup_python_env(method = "econml")
+
+fit_dr <- cf_fit(Y ~ T | X1 + X2, data = data, method = "drlearner")
+```
+
+### When to Use CAVAE
+
+Use CAVAE when you suspect latent confounding that cannot be directly measured. This deep learning approach can model complex relationships and latent variables.
+
+```{r cavae_example, eval=FALSE}
+setup_python_env(method = "pyro")
+
+fit_cavae <- cf_fit(Y ~ T | X1 + X2, data = data, method = "cavae",
+                    outcome_dist = "bernoulli", num_epochs = 50L)
+```
+
+### When to Use GRF (Causal Forest)
+
+Use GRF when you want to estimate heterogeneous treatment effects with confidence intervals. This method is particularly good for discovering treatment effect heterogeneity.
+
+```{r grf_example, eval=FALSE}
+fit_grf <- cf_fit(Y ~ T | X1 + X2, data = data, method = "grf")
+```
+
+### When to Use IPW
+
+Use IPW when you have a simple setting with well-understood confounders and want a straightforward, interpretable analysis. This is a good baseline method.
+
+```{r ipw_example, eval=FALSE}
+fit_ipw <- cf_fit(Y ~ T | X1 + X2, data = data, method = "ipw")
+```
+
+### When to Use G-formula
+
+Use G-formula when you want a parametric approach with bootstrap confidence intervals. This method is flexible and doesn't require Python.
+
+```{r gformula_example, eval=FALSE}
+fit_gf <- cf_fit(Y ~ T | X1 + X2, data = data, method = "gformula")
+```
+
+## Comparing Results
+
+All methods return a consistent `cf_model` object that can be used with the same prediction interface.
+
+```{r compare_results, eval=FALSE}
+ate_dowhy <- predict(fit_dowhy, type = "ate")
+ate_dr <- predict(fit_dr, type = "ate")
+ate_grf <- predict(fit_grf, type = "ate")
+ate_ipw <- predict(fit_ipw, type = "ate")
+ate_gf <- predict(fit_gf, type = "ate")
+
+results <- data.frame(
+  Method = c("DoWhy-GCM", "DRLearner", "GRF", "IPW", "G-formula"),
+  ATE = c(ate_dowhy, ate_dr, ate_grf, ate_ipw, ate_gf)
+)
+print(results)
+```
+
+## Confidence Intervals
+
+Different methods provide confidence intervals through different mechanisms.
+
+DoWhy-GCM uses bootstrap resampling when `bootstrap = TRUE` is specified.
+
+GRF provides analytical confidence intervals based on the forest structure.
+
+IPW uses survey-weighted regression standard errors.
+
+G-formula uses bootstrap resampling by default.
+
+```{r ci_example, eval=FALSE}
+fit_grf <- cf_fit(Y ~ T | X1 + X2, data = data, method = "grf")
+summary_grf <- predict(fit_grf, type = "summary")
+cat(sprintf("GRF ATE: %.3f [%.3f, %.3f]\n",
+            summary_grf$ate,
+            summary_grf$ate_ci_lower,
+            summary_grf$ate_ci_upper))
+```
+
+## Individual Treatment Effects
+
+Methods differ in their ability to estimate heterogeneous treatment effects.
+
+DoWhy-GCM, DRLearner, CAVAE, GRF, and G-formula all provide individual-level treatment effect estimates. IPW provides only a population-level ATE estimate (all ITEs are equal to the ATE).
+
+```{r ite_example, eval=FALSE}
+ite_grf <- predict(fit_grf, type = "ite")
+ite_gf <- predict(fit_gf, type = "ite")
+
+hist(ite_grf, main = "GRF ITE Distribution", xlab = "ITE")
+hist(ite_gf, main = "G-formula ITE Distribution", xlab = "ITE")
+```
+
+## Computational Considerations
+
+The methods vary significantly in computational requirements.
+
+IPW and G-formula are the fastest methods, suitable for quick analyses.
+
+GRF is moderately fast and scales well with sample size.
+
+DoWhy-GCM and DRLearner have moderate computational requirements.
+
+CAVAE is the most computationally intensive due to deep learning training.
+
+## Recommendations
+
+For exploratory analysis, start with G-formula or IPW for quick results, then validate with more sophisticated methods.
+
+For publication-quality results, use multiple methods and compare results. Agreement across methods strengthens causal claims.
+
+For high-dimensional data, prefer DRLearner or GRF which handle many covariates well.
+
+For heterogeneous effects, use GRF or DRLearner which are designed for effect heterogeneity.
+
+When you have domain knowledge, use DoWhy-GCM to encode your causal assumptions explicitly.
+
+## Summary
+
+The cfomics package provides a unified interface for causal inference, making it easy to compare methods and validate results. Choose your method based on your data characteristics, computational resources, and the assumptions you're willing to make.

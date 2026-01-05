@@ -1,0 +1,217 @@
+---
+title: "Advanced DoWhy-GCM Features in cfomics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Advanced DoWhy-GCM Features in cfomics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+
+This vignette demonstrates the advanced features of the DoWhy-GCM integration in cfomics, including bootstrap confidence intervals for ATE estimation, visualization capabilities, and metadata logging.
+
+## Setup
+
+```{r setup, eval=FALSE}
+library(cfomics)
+library(igraph)
+
+cf_use_python_env()
+```
+
+## Synthetic Data
+
+We create a dataset with a known treatment effect for demonstration.
+
+```{r data}
+set.seed(42)
+n <- 500
+
+X1 <- rnorm(n)
+X2 <- rnorm(n)
+p_t <- plogis(0.5 * X1 - 0.3 * X2)
+T <- rbinom(n, 1, p_t)
+Y <- 1.5 * T + 0.8 * X1 + 0.4 * X2 + rnorm(n, sd = 0.5)
+
+data <- data.frame(Y = Y, T = T, X1 = X1, X2 = X2)
+```
+
+## Define the Causal Graph
+
+```{r graph}
+library(igraph)
+g <- graph_from_edgelist(
+  matrix(c(
+    "X1", "T",
+    "X2", "T",
+    "X1", "Y",
+    "X2", "Y",
+    "T", "Y"
+  ), ncol = 2, byrow = TRUE)
+)
+```
+
+## Bootstrap Confidence Intervals
+
+The enhanced DoWhy-GCM implementation supports bootstrap confidence intervals for ATE estimation. This provides uncertainty quantification for the treatment effect estimate.
+
+```{r bootstrap, eval=FALSE}
+fit_boot <- cf_dowhy(
+  Y ~ T | X1 + X2,
+  data = data,
+  graph = g,
+  bootstrap = TRUE,
+  n_bootstrap = 100,
+  random_state = 42
+)
+
+summary(fit_boot)
+```
+
+The summary output includes the ATE estimate along with 95% confidence intervals computed via bootstrap resampling.
+
+## Visualization
+
+cfomics provides several visualization functions to explore treatment effects.
+
+### ITE Distribution
+
+```{r plot_ite, eval=FALSE}
+ite <- predict(fit_boot, type = "ite")
+
+cf_plot_ite(ite, save_path = "ite_distribution.png")
+```
+
+### Outcome Shift
+
+Compare the distribution of counterfactual outcomes under treatment and control.
+
+```{r plot_outcome, eval=FALSE}
+y0 <- predict(fit_boot, type = "y0")
+y1 <- predict(fit_boot, type = "y1")
+
+cf_plot_outcome_shift(y0, y1, save_path = "outcome_shift.png")
+```
+
+### Uplift Curve
+
+The uplift curve shows the cumulative treatment effect when targeting individuals by their predicted ITE.
+
+```{r plot_uplift, eval=FALSE}
+cf_plot_uplift(ite, save_path = "uplift_curve.png")
+```
+
+### Bootstrap ATE Distribution
+
+When bootstrap is enabled, you can visualize the distribution of ATE estimates.
+
+```{r plot_ate_boot, eval=FALSE}
+samples <- predict(fit_boot, type = "samples")
+if (!is.null(samples$ate_bootstrap)) {
+  cf_plot_ate_bootstrap(
+    samples$ate_bootstrap,
+    ate_point = predict(fit_boot, type = "ate"),
+    save_path = "ate_bootstrap.png"
+  )
+}
+```
+
+### Generate All Plots
+
+Use `cf_plot_all()` to generate all visualization plots at once.
+
+```{r plot_all, eval=FALSE}
+cf_plot_all(fit_boot, output_dir = "plots/")
+```
+
+## Metadata and Reproducibility
+
+Enable metadata logging to track input data characteristics and model configuration.
+
+```{r metadata, eval=FALSE}
+fit_meta <- cf_dowhy(
+  Y ~ T | X1 + X2,
+  data = data,
+  graph = g,
+  return_metadata = TRUE,
+  random_state = 42
+)
+
+metadata <- cf_metadata(fit_meta)
+print(metadata)
+```
+
+The metadata includes an input data hash for reproducibility tracking, the DAG structure used, and processing information.
+
+## Configuration Files
+
+For complex analyses, you can use JSON configuration files to specify advanced options like dimensionality reduction.
+
+```{r config_file, eval=FALSE}
+config <- list(
+  random_seed = 42,
+  bootstrap = list(
+    n_iterations = 200
+  ),
+  dimensionality_reduction = list(
+    enabled = TRUE,
+    method = "pca",
+    n_components = 10
+  ),
+  output_metadata = TRUE
+)
+
+config_path <- tempfile(fileext = ".json")
+jsonlite::write_json(config, config_path, auto_unbox = TRUE)
+
+fit_config <- cf_dowhy(
+  Y ~ T | X1 + X2,
+  data = data,
+  graph = g,
+  config_path = config_path
+)
+```
+
+## Summary Statistics
+
+The `summary()` method provides a comprehensive overview of the model results.
+
+```{r summary_example, eval=FALSE}
+summary(fit_boot)
+```
+
+Output includes the ATE estimate with confidence intervals (if bootstrap was enabled), ITE distribution statistics (mean, standard deviation, quantiles), and sample size information.
+
+## Accessing Raw Results
+
+For custom analyses, you can access the raw prediction samples.
+
+```{r raw_results, eval=FALSE}
+samples <- predict(fit_boot, type = "samples")
+
+y0_samples <- samples$y0
+y1_samples <- samples$y1
+ite_samples <- samples$ite
+
+if (!is.null(samples$ate_bootstrap)) {
+  ate_samples <- samples$ate_bootstrap
+}
+```
+
+## Best Practices
+
+When using bootstrap confidence intervals, use at least 100 bootstrap iterations for stable estimates. For publication-quality results, consider 500-1000 iterations.
+
+For high-dimensional data, enable PCA dimensionality reduction via the configuration file to improve computational efficiency and reduce overfitting.
+
+Always set `random_state` for reproducibility, especially when comparing different model specifications.
+
+Use `return_metadata = TRUE` when you need to track the exact data and configuration used for an analysis.
