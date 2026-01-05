@@ -1,0 +1,32 @@
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.httr-oauth
+.DS_Store
+
+# Package build artifacts
+*.tar.gz
+*.Rcheck/
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+*.egg-info/
+.eggs/
+.venv/
+venv/
+
+# Environment
+.env
+
+# renv (if used at root level)
+renv/library/
+renv/staging/
+renv/cellar/
