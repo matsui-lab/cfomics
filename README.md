@@ -6,16 +6,21 @@
 
 ## Overview
 
-`cfomics` provides a unified interface for counterfactual causal inference methods, specifically designed for omics data analysis. It supports Bioconductor data structures and offers both Python-based deep learning methods and R-native statistical approaches.
+`cfomics` provides a unified interface for counterfactual causal inference methods, specifically designed for omics data analysis. It supports Bioconductor data structures (SummarizedExperiment, MultiAssayExperiment) and offers both Python-based deep learning methods and R-native statistical approaches.
+
+**Version**: 0.4.0
 
 ## Features
 
 - **Unified API**: Single `cf_fit()` function for all causal inference methods
 - **Multiple Backends**: 7 causal inference methods (4 Python-based, 3 R-native)
-- **Bioconductor Integration**: Support for SummarizedExperiment and MultiAssayExperiment (planned)
+- **Bioconductor Integration**: Full support for SummarizedExperiment and MultiAssayExperiment
 - **Flexible Predictions**: ATE, ITE, counterfactual outcomes
 - **Visualization**: Built-in plotting functions for treatment effects
+- **Diagnostics**: Covariate balance and overlap checking tools
+- **Reporting**: Publication-ready tables and export functionality
 - **Benchmarking**: Infrastructure for comparing methods on synthetic data
+- **One-Command Setup**: `cf_setup()` for complete environment configuration
 
 ## Installation
 
@@ -36,14 +41,20 @@ For Python-based methods (DoWhy, GANITE, DRLearner, CAVAE):
 ```r
 library(cfomics)
 
-# Install Python environment for specific method
-cf_install_python_env("dowhy")
+# Option 1: One-command setup (recommended)
+cf_setup()                           # Standard setup (DoWhy, EconML)
+cf_setup(level = "minimal")          # R-only, no Python required
+cf_setup(level = "full", gpu = TRUE) # All methods with GPU support
 
-# Or install all environments
-cf_install_python_env("all")
+# Option 2: Method-specific setup
+cf_setup_method("dowhy")
 
-# Activate environment
-cf_use_python_env("dowhy")
+# Option 3: Manual environment management
+cf_install_python_env("unified")
+cf_use_python_env("unified")
+
+# Check environment status
+cf_check_env()
 ```
 
 ## Quick Start
@@ -81,14 +92,25 @@ predict(fit, type = "ite")  # Individual Treatment Effects
 plot(fit)
 ```
 
+### Using Automatic Method Selection
+
+```r
+# Let cfomics choose the best available method
+fit <- cf_fit(
+  Y ~ T | X1 + X2,
+  data = data,
+  method = "auto"  # Selects best available method
+)
+```
+
 ### Using DoWhy-GCM (Python-based)
 
 ```r
 # Setup Python environment (one-time)
-setup_python_env("dowhy")
+cf_setup_method("dowhy")
 
 # Define causal DAG
-g <- graph_from_edgelist(rbind(
+g <- igraph::graph_from_edgelist(rbind(
   c("X1", "T"), c("X1", "Y"),
   c("X2", "Y"), c("T", "Y")
 ))
@@ -182,20 +204,95 @@ results <- cf_benchmark_run(
 cf_benchmark_summarize(results)
 ```
 
+## Diagnostics
+
+cfomics provides tools for checking causal inference assumptions:
+
+```r
+# Check covariate balance between treatment groups
+balance <- cf_balance_check(data, treatment = "T", covariates = c("X1", "X2"))
+print(balance)
+plot(balance)
+
+# Check overlap/positivity assumption
+overlap <- cf_overlap_check(data, treatment = "T", covariates = c("X1", "X2"))
+print(overlap)
+plot(overlap)
+```
+
+## Reporting
+
+Generate publication-ready results:
+```r
+# Create formatted results table
+cf_table(fit)                         # data.frame
+cf_table(fit, format = "markdown")    # Markdown
+cf_table(fit, format = "latex")       # LaTeX
+
+# Export results to file
+cf_export(fit, "results.csv")         # CSV format
+cf_export(fit, "results.rds")         # RDS format
+cf_export(fit, "results.json")        # JSON format
+
+# Session information for reproducibility
+cf_session_info(fit)
+```
+
+## Bioconductor Integration
+
+Use cfomics with SummarizedExperiment and MultiAssayExperiment:
+
+```r
+library(SummarizedExperiment)
+
+# Convert Bioconductor object to cfomics format
+cf_data <- as_cf_data(
+  se,                              # SummarizedExperiment object
+  outcome = "gene_expression",     # Outcome variable
+  treatment = "treatment",         # Treatment variable
+  feature_select = "variance",     # Feature selection: "variance", "pca", "none"
+  n_features = 50                  # Number of features to include
+)
+
+# Fit model
+fit <- cf_fit(outcome ~ treatment | ., data = cf_data, method = "grf")
+```
+
+## Configuration
+
+Persistent configuration management:
+
+```r
+# View all settings
+cf_config()
+
+# Get/set specific values
+cf_config("methods.default")           # Get
+cf_config("methods.default", "grf")    # Set
+
+# Reset to defaults
+cf_config_reset()
+```
+
 ## Environment Management
 
 ```r
-# Check available environments
-cf_list_python_envs()
+# Comprehensive environment check
+cf_check_env()
+
+# One-command setup
+cf_setup()                           # Standard
+cf_setup(level = "full")             # All methods
 
 # Install specific environment
-cf_install_python_env("econml")
+cf_install_python_env("unified")     # Unified environment
+cf_install_python_env("dowhy")       # Method-specific
 
-# Use environment
-cf_use_python_env("econml")
+# Activate environment
+cf_use_python_env("unified")
 
-# Or use convenience function
-setup_python_env("dowhy")  # Install if needed + activate
+# Reset all cfomics environments
+cf_reset_env()
 ```
 
 ## Requirements
@@ -209,20 +306,27 @@ setup_python_env("dowhy")  # Install if needed + activate
 **Suggested (for specific methods):**
 - grf (for GRF method)
 - ipw, survey (for IPW method)
-- ggplot2 (for enhanced visualizations)
+- ggplot2, gridExtra (for enhanced visualizations)
+- SummarizedExperiment, MultiAssayExperiment (for Bioconductor integration)
+- yaml, jsonlite (for configuration and export)
+- knitr, rmarkdown (for vignettes)
 
-Note: The G-formula method uses base R (lm) and does not require additional packages.
+Note: The G-formula method uses base R (`lm()`) and does not require additional packages.
 
 ### Python Dependencies
 
 For Python-based methods, you need:
 
-- Python 3.9+
-- numpy, pandas, scikit-learn
+- Python 3.9+ (3.11 recommended)
+- numpy, pandas, scipy, scikit-learn (base dependencies)
+
+**Method-specific packages:**
 - dowhy (for DoWhy-GCM)
 - econml (for DRLearner)
-- tensorflow (for GANITE)
+- tensorflow or tensorflow-cpu (for GANITE)
 - torch, pyro-ppl (for CAVAE)
+
+All Python dependencies can be installed automatically using `cf_setup()`.
 
 ## Citation
 
@@ -230,7 +334,8 @@ For Python-based methods, you need:
 @software{cfomics,
   author = {Yusuke Matsui},
   title = {cfomics: Counterfactual Causal Inference for Omics Data},
-  year = {2024},
+  version = {0.4.0},
+  year = {2025},
   url = {https://github.com/matsui-lab/counterfactual_agingR}
 }
 ```
@@ -253,7 +358,6 @@ Rscript tools/check_package.R --bioc
 Or manually:
 
 ```bash
-cd cfomics
 R CMD build .
 R CMD check --as-cran cfomics_*.tar.gz
 ```
