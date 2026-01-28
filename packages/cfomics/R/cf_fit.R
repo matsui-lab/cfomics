@@ -53,6 +53,7 @@
 #'     \item{"grf"}{Generalized Random Forest (R-native, recommended for most cases)}
 #'     \item{"ipw"}{Inverse Probability Weighting (R-native)}
 #'     \item{"gformula"}{G-computation/parametric g-formula (R-native, no extra packages)}
+#'     \item{"hdml"}{High-Dimensional Machine Learning/Debiased Lasso (R-native, requires glmnet)}
 #'     \item{"dowhy_gcm"}{DoWhy Graphical Causal Model (Python, requires DAG)}
 #'     \item{"drlearner"}{Double/Debiased Machine Learning (Python)}
 #'     \item{"ganite"}{GAN-based ITE estimation (Python/TensorFlow)}
@@ -136,7 +137,7 @@
 #' fit_se <- cf_fit(Gene1 ~ treatment | age, data = se, method = "grf")
 #' }
 cf_fit <- function(formula, data,
-                   method = c("grf", "ipw", "gformula", "dowhy_gcm",
+                   method = c("grf", "ipw", "gformula", "hdml", "dowhy_gcm",
                               "ganite", "drlearner", "cavae", "auto"),
                    graph = NULL,
                    bootstrap = FALSE, n_bootstrap = 100L,
@@ -218,6 +219,9 @@ cf_fit <- function(formula, data,
     "gformula" = cf_fit_gformula(X = X, T = T, Y = Y,
                                  covariate_names = parsed$covariate_names,
                                  ...),
+    "hdml" = cf_fit_hdml(X = X, T = T, Y = Y,
+                         covariate_names = parsed$covariate_names,
+                         ...),
     stop(sprintf("Unknown method: %s", method))
   )
 
