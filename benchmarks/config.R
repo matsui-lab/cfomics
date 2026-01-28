@@ -2,7 +2,34 @@
 # Centralized benchmark configuration
 
 benchmark_config <- function() {
+  # Compute absolute path to scenarios.R for use in parallel workers
+  # (workers may have different working directories)
+  scenarios_path <- NULL
+
+  # Try to find scenarios.R from current working directory or common locations
+  candidates <- c(
+    file.path("benchmarks", "R", "scenarios.R"),
+    file.path("..", "benchmarks", "R", "scenarios.R"),
+    file.path(Sys.getenv("CFOMICS_ROOT", "."), "benchmarks", "R", "scenarios.R")
+  )
+  for (cand in candidates) {
+    if (file.exists(cand)) {
+      scenarios_path <- normalizePath(cand, mustWork = TRUE)
+      break
+    }
+  }
+
+  if (is.null(scenarios_path)) {
+    warning("Could not locate scenarios.R - parallel workers may fail. ",
+            "Set CFOMICS_ROOT environment variable to the project root.")
+    # Default fallback (will be validated at runtime)
+    scenarios_path <- file.path("benchmarks", "R", "scenarios.R")
+  }
+
   list(
+    # Absolute path to scenarios.R for parallel workers
+    scenarios_path = scenarios_path,
+
     # Methods to benchmark
     methods = c("gformula", "hdml", "hdps", "bcf", "tmle"),
 

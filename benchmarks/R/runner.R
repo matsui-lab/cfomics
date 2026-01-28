@@ -12,9 +12,9 @@ make_result_filename <- function(scenario_id, method, rep, results_dir) {
 }
 
 # Run a single benchmark job
+# Note: cfomics package is loaded via furrr_options(packages = "cfomics")
+# All cfomics functions use explicit namespace prefix cfomics:: for clarity
 run_single_job <- function(scenario, method, rep, cfg) {
-  suppressPackageStartupMessages(library(cfomics))
-
   gen <- generate_scenario_data(scenario, rep, cfg$base_seed)
 
   k <- min(cfg$formula_k, gen$p)
@@ -29,7 +29,7 @@ run_single_job <- function(scenario, method, rep, cfg) {
 
   result <- tryCatch({
     fit_time <- system.time({
-      fit <- do.call(cf_fit, c(list(formula = fml, data = gen$data, method = method), extra_args))
+      fit <- do.call(cfomics::cf_fit, c(list(formula = fml, data = gen$data, method = method), extra_args))
     })
 
     ate_hat <- predict(fit, type = "ate")
@@ -120,8 +120,10 @@ run_benchmark <- function(cfg, retry_errors = FALSE) {
   existing <- vapply(jobs, function(j) {
     if (!file.exists(j$rds_path)) return(FALSE)
     if (retry_errors) {
-      res <- readRDS(j$rds_path)
-      return(res$status == "ok")
+      # Handle corrupted RDS files gracefully - treat as incomplete
+      res <- tryCatch(readRDS(j$rds_path), error = function(e) NULL)
+      if (is.null(res)) return(FALSE)
+      return(isTRUE(res$status == "ok"))
     }
     TRUE
   }, logical(1))
@@ -142,9 +144,13 @@ run_benchmark <- function(cfg, retry_errors = FALSE) {
 
   # Set up parallel
   n_workers <- cfg$n_workers
+  # n_workers <= 0 means auto-detect: use all cores minus 1 (the -1L reserves
+  # one core for the main R process and OS operations to keep the system responsive)
   if (n_workers <= 0L) n_workers <- max(1L, parallel::detectCores() - 1L)
+  # Capture existing plan to restore on exit (before modifying)
+  old_plan <- plan()
+  on.exit(plan(old_plan), add = TRUE)
   plan(multisession, workers = n_workers)
-  on.exit(plan(sequential), add = TRUE)
 
   message(sprintf("Running %d jobs on %d workers...", length(pending_jobs), n_workers))
 
@@ -152,12 +158,16 @@ run_benchmark <- function(cfg, retry_errors = FALSE) {
   results <- progressr::with_progress({
     p <- progressr::progressor(along = pending_jobs)
     furrr::future_map(pending_jobs, function(job) {
-      source("benchmarks/R/scenarios.R", local = TRUE)
+      # Source scenarios.R using absolute path from config (workers may have different cwd)
+      source(cfg$scenarios_path, local = TRUE)
       res <- run_single_job(job$scenario, job$method, job$rep, cfg)
-      saveRDS(res, job$rds_path)
+      # Atomic write: save to temp file first, then rename to avoid partial writes
+      tmp_path <- paste0(job$rds_path, ".tmp")
+      saveRDS(res, tmp_path)
+      file.rename(tmp_path, job$rds_path)
       p()
       res
-    }, .options = furrr::furrr_options(seed = TRUE))
+    }, .options = furrr::furrr_options(seed = TRUE, packages = "cfomics"))
   })
 
   message(sprintf("Done. %d jobs executed.", length(results)))
