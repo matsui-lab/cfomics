@@ -3,6 +3,7 @@
 
 library(future)
 library(furrr)
+library(progressr)
 
 # Build filename for a single job result
 make_result_filename <- function(scenario_id, method, rep, results_dir) {
@@ -12,12 +13,7 @@ make_result_filename <- function(scenario_id, method, rep, results_dir) {
 
 # Run a single benchmark job
 run_single_job <- function(scenario, method, rep, cfg) {
-  # Try installed package first, fall back to devtools::load_all for development
-  if (requireNamespace("cfomics", quietly = TRUE)) {
-    suppressPackageStartupMessages(library(cfomics))
-  } else {
-    suppressPackageStartupMessages(devtools::load_all("packages/cfomics", quiet = TRUE))
-  }
+  suppressPackageStartupMessages(library(cfomics))
 
   gen <- generate_scenario_data(scenario, rep, cfg$base_seed)
 
@@ -135,7 +131,13 @@ run_benchmark <- function(cfg, retry_errors = FALSE) {
 
   if (length(pending_jobs) == 0) {
     message("All jobs complete.")
-    return(invisible(NULL))
+    return(list(
+      total = total,
+      completed = sum(existing),
+      pending = 0L,
+      executed = 0L,
+      results = list()
+    ))
   }
 
   # Set up parallel
@@ -146,15 +148,26 @@ run_benchmark <- function(cfg, retry_errors = FALSE) {
 
   message(sprintf("Running %d jobs on %d workers...", length(pending_jobs), n_workers))
 
-  # Execute in parallel
-  results <- furrr::future_map(pending_jobs, function(job) {
-    source("benchmarks/R/scenarios.R", local = TRUE)
-    res <- run_single_job(job$scenario, job$method, job$rep, cfg)
-    saveRDS(res, job$rds_path)
-    res
-  }, .options = furrr::furrr_options(seed = TRUE),
-     .progress = TRUE)
+  # Execute in parallel with progressr
+  results <- progressr::with_progress({
+    p <- progressr::progressor(along = pending_jobs)
+    furrr::future_map(pending_jobs, function(job) {
+      source("benchmarks/R/scenarios.R", local = TRUE)
+      res <- run_single_job(job$scenario, job$method, job$rep, cfg)
+      saveRDS(res, job$rds_path)
+      p()
+      res
+    }, .options = furrr::furrr_options(seed = TRUE))
+  })
 
   message(sprintf("Done. %d jobs executed.", length(results)))
-  invisible(results)
+
+  # Return structured summary
+  list(
+    total = total,
+    completed = sum(existing),
+    pending = length(pending_jobs),
+    executed = length(results),
+    results = results
+  )
 }
