@@ -61,8 +61,14 @@ results_list <- lapply(rds_files, function(f) {
   tryCatch({
     res <- readRDS(f)
     # Ensure it's a data.frame with required columns
-    if (!is.data.frame(res) || !("status" %in% names(res))) {
-      warning("Skipping malformed file: ", basename(f))
+    if (!is.data.frame(res)) {
+      warning("Skipping malformed file (not a data.frame): ", basename(f))
+      return(NULL)
+    }
+    required_cols <- c("status", "scenario_id", "method", "mse_ate", "n", "p", "ate_true")
+    if (!all(required_cols %in% names(res))) {
+      missing <- setdiff(required_cols, names(res))
+      warning("Skipping file with missing columns (", paste(missing, collapse=", "), "): ", basename(f))
       return(NULL)
     }
     res
@@ -107,7 +113,6 @@ message("\nAggregating metrics by scenario and method...")
 # Helper to compute safe statistics
 safe_mean <- function(x) if (all(is.na(x))) NA_real_ else mean(x, na.rm = TRUE)
 safe_sd <- function(x) if (all(is.na(x)) || sum(!is.na(x)) < 2) NA_real_ else sd(x, na.rm = TRUE)
-safe_sum <- function(x) if (all(is.na(x))) NA_integer_ else sum(!is.na(x))
 
 # Group by scenario_id and method
 groups <- split(ok_df, list(ok_df$scenario_id, ok_df$method), drop = TRUE)
@@ -116,11 +121,9 @@ agg_list <- lapply(names(groups), function(grp_name) {
   grp <- groups[[grp_name]]
   if (nrow(grp) == 0) return(NULL)
 
-  # Extract scenario_id and method from group name
-  # Format is "scenario_id.method"
-  parts <- strsplit(grp_name, "\\.")[[1]]
-  scenario_id <- parts[1]
-  method <- paste(parts[-1], collapse = ".")  # Handle methods with dots if any
+  # Extract scenario_id and method directly from the group data frame
+  scenario_id <- grp$scenario_id[1]
+  method <- grp$method[1]
 
   # Compute RMSE from individual MSE values
   # RMSE = sqrt(mean(MSE)) since MSE = (estimate - true)^2
