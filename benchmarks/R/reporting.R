@@ -44,6 +44,9 @@ plot_method_heatmap <- function(df, metric, lower_is_better = TRUE, title = NULL
   if (!is.data.frame(df)) {
     stop("'df' must be a data.frame")
   }
+  if (nrow(df) == 0) {
+    stop("'df' contains no rows")
+  }
   if (!metric %in% names(df)) {
     stop("Metric '", metric, "' not found in data frame")
   }
@@ -115,6 +118,9 @@ plot_bias_boxplot <- function(df, bias_col = "bias_ate", title = NULL) {
   if (!is.data.frame(df)) {
     stop("'df' must be a data.frame")
   }
+  if (nrow(df) == 0) {
+    stop("'df' contains no rows")
+  }
   if (!bias_col %in% names(df)) {
     stop("Bias column '", bias_col, "' not found in data frame")
   }
@@ -128,7 +134,7 @@ plot_bias_boxplot <- function(df, bias_col = "bias_ate", title = NULL) {
 
   # Get available methods that exist in our color palette
   methods_in_data <- unique(df$method)
-  colors_to_use <- METHOD_COLORS[methods_in_data]
+  colors_to_use <- METHOD_COLORS[intersect(methods_in_data, names(METHOD_COLORS))]
   # For methods not in palette, use grey
   missing_methods <- setdiff(methods_in_data, names(METHOD_COLORS))
   if (length(missing_methods) > 0) {
@@ -167,6 +173,9 @@ plot_bias_boxplot <- function(df, bias_col = "bias_ate", title = NULL) {
 plot_coverage_heatmap <- function(df, coverage_col = "coverage", nominal = 0.95, title = NULL) {
   if (!is.data.frame(df)) {
     stop("'df' must be a data.frame")
+  }
+  if (nrow(df) == 0) {
+    stop("'df' contains no rows")
   }
   if (!coverage_col %in% names(df)) {
     stop("Coverage column '", coverage_col, "' not found in data frame")
@@ -229,6 +238,10 @@ plot_cd_diagram <- function(friedman_result, nemenyi_result, title = NULL) {
   mean_ranks <- friedman_result$mean_ranks
   cd <- nemenyi_result$critical_difference
 
+  if (is.null(names(mean_ranks))) {
+    stop("'mean_ranks' in friedman_result must be a named numeric vector")
+  }
+
   # Sort methods by rank (best = lowest rank first)
   sorted_idx <- order(mean_ranks)
   methods <- names(mean_ranks)[sorted_idx]
@@ -275,14 +288,16 @@ plot_cd_diagram <- function(friedman_result, nemenyi_result, title = NULL) {
     merged <- FALSE
     for (i in seq_along(groups)) {
       if (i > length(groups)) break
-      for (j in seq(i + 1, length(groups))) {
-        if (j > length(groups)) break
-        if (length(intersect(groups[[i]], groups[[j]])) > 0) {
-          groups[[i]] <- union(groups[[i]], groups[[j]])
-          groups[[j]] <- NULL
-          groups <- Filter(Negate(is.null), groups)
-          merged <- TRUE
-          break
+      if (i < length(groups)) {
+        for (j in (i + 1):length(groups)) {
+          if (j > length(groups)) break
+          if (length(intersect(groups[[i]], groups[[j]])) > 0) {
+            groups[[i]] <- union(groups[[i]], groups[[j]])
+            groups[[j]] <- NULL
+            groups <- Filter(Negate(is.null), groups)
+            merged <- TRUE
+            break
+          }
         }
       }
       if (merged) break
@@ -373,6 +388,9 @@ plot_sweep_curves <- function(df, x_var, metrics, title = NULL) {
   if (!is.data.frame(df)) {
     stop("'df' must be a data.frame")
   }
+  if (nrow(df) == 0) {
+    stop("'df' contains no rows")
+  }
   if (!x_var %in% names(df)) {
     stop("x_var '", x_var, "' not found in data frame")
   }
@@ -386,7 +404,7 @@ plot_sweep_curves <- function(df, x_var, metrics, title = NULL) {
 
   # Get available methods for coloring
   methods_in_data <- unique(df$method)
-  colors_to_use <- METHOD_COLORS[methods_in_data]
+  colors_to_use <- METHOD_COLORS[intersect(methods_in_data, names(METHOD_COLORS))]
   missing_methods <- setdiff(methods_in_data, names(METHOD_COLORS))
   if (length(missing_methods) > 0) {
     extra_colors <- setNames(
@@ -445,6 +463,9 @@ plot_bias_variance <- function(df, bias_col = "mean_bias", var_col = "sd_bias",
                                is_sd = TRUE, title = NULL) {
   if (!is.data.frame(df)) {
     stop("'df' must be a data.frame")
+  }
+  if (nrow(df) == 0) {
+    stop("'df' contains no rows")
   }
   if (!bias_col %in% names(df)) {
     stop("Bias column '", bias_col, "' not found in data frame")
@@ -536,6 +557,9 @@ plot_computation_time <- function(df, time_col = "mean_time", log_scale = TRUE,
   if (!is.data.frame(df)) {
     stop("'df' must be a data.frame")
   }
+  if (nrow(df) == 0) {
+    stop("'df' contains no rows")
+  }
   if (!time_col %in% names(df)) {
     stop("Time column '", time_col, "' not found in data frame")
   }
@@ -554,6 +578,10 @@ plot_computation_time <- function(df, time_col = "mean_time", log_scale = TRUE,
       by = list(method = df$method),
       FUN = function(x) c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE))
     )
+    # Handle edge case where aggregate returns vector instead of matrix for single method
+    if (!is.matrix(agg_df$x)) {
+      agg_df$x <- matrix(agg_df$x, nrow = 1, dimnames = list(NULL, c("mean", "sd")))
+    }
     agg_df <- data.frame(
       method = agg_df$method,
       mean_time = agg_df$x[, "mean"],
@@ -572,7 +600,7 @@ plot_computation_time <- function(df, time_col = "mean_time", log_scale = TRUE,
 
   # Get colors
   methods_in_data <- as.character(unique(agg_df$method))
-  colors_to_use <- METHOD_COLORS[methods_in_data]
+  colors_to_use <- METHOD_COLORS[intersect(methods_in_data, names(METHOD_COLORS))]
   missing_methods <- setdiff(methods_in_data, names(METHOD_COLORS))
   if (length(missing_methods) > 0) {
     extra_colors <- setNames(rep("grey50", length(missing_methods)), missing_methods)
@@ -594,6 +622,9 @@ plot_computation_time <- function(df, time_col = "mean_time", log_scale = TRUE,
 
   # Apply log scale if requested
   if (log_scale) {
+    if (any(agg_df$mean_time <= 0, na.rm = TRUE)) {
+      warning("Zero or negative time values detected; log scale may produce warnings")
+    }
     p <- p + scale_y_log10(
       labels = scales::label_number(accuracy = 0.01)
     ) +
@@ -624,18 +655,16 @@ plot_computation_time <- function(df, time_col = "mean_time", log_scale = TRUE,
 #' @param caption Table caption
 #' @param label LaTeX label for cross-referencing
 #' @param digits Number of decimal places for numeric columns (default 3)
-#' @param highlight_best Logical, highlight best value per row (default FALSE)
-#' @param lower_is_better Character vector of column names where lower is better
-#'        (for highlighting). Only used if highlight_best = TRUE.
 #' @param font_size Font size (NULL for default, or e.g., "small", "footnotesize")
 #' @return Character string with LaTeX code
 #' @export
 generate_latex_table <- function(df, caption, label, digits = 3,
-                                 highlight_best = FALSE,
-                                 lower_is_better = NULL,
                                  font_size = NULL) {
   if (!is.data.frame(df)) {
     stop("'df' must be a data.frame")
+  }
+  if (nrow(df) == 0) {
+    stop("'df' contains no rows")
   }
   if (!requireNamespace("kableExtra", quietly = TRUE)) {
     stop("kableExtra package required for LaTeX table generation. ",
@@ -665,15 +694,6 @@ generate_latex_table <- function(df, caption, label, digits = 3,
     tbl <- kableExtra::kable_styling(tbl, font_size = font_size)
   } else {
     tbl <- kableExtra::kable_styling(tbl, latex_options = latex_opts)
-  }
-
-  # Highlight best values if requested
-  if (highlight_best && !is.null(lower_is_better)) {
-    # This would require row-by-row processing which is complex
-
-    # For now, just note this in documentation
-    warning("highlight_best with lower_is_better not fully implemented. ",
-            "Consider manual highlighting with kableExtra::cell_spec().")
   }
 
   # Return as character
