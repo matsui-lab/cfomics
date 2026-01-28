@@ -59,8 +59,7 @@ compute_ranks <- function(df, metric, groups = "scenario_id", lower_is_better = 
         # Lower is better: smaller values get lower (better) ranks
         r <- rank(values, ties.method = "average", na.last = "keep")
         # Assign NA values the worst rank (highest)
-        r[na_mask] <- mean(seq_len(length(values))[!na_mask %in% seq_len(sum(!na_mask))]) + sum(!na_mask)
-        r[na_mask] <- length(values)  # Simplified: worst rank
+        r[na_mask] <- length(values)  # Worst rank
       } else {
         # Higher is better: negate values so higher gets lower rank
         r <- rank(-values, ties.method = "average", na.last = "keep")
@@ -89,19 +88,23 @@ compute_ranks <- function(df, metric, groups = "scenario_id", lower_is_better = 
 #' Performs the Friedman test for comparing multiple methods across multiple
 #' scenarios. This is a nonparametric alternative to repeated measures ANOVA.
 #'
-#' @param ranks_df Data frame from compute_ranks() with scenario_id, method, rank columns
+#' @param ranks_df Data frame from compute_ranks() with grouping column, method, rank columns
+#' @param group_col Character, name of the grouping column (default "scenario_id")
 #' @return List with statistic, df, p_value, mean_ranks, n_scenarios, n_methods
 #' @export
-friedman_test <- function(ranks_df) {
+friedman_test <- function(ranks_df, group_col = "scenario_id") {
   if (!is.data.frame(ranks_df)) {
     stop("'ranks_df' must be a data.frame")
   }
-  if (!all(c("scenario_id", "method", "rank") %in% names(ranks_df))) {
-    stop("'ranks_df' must contain 'scenario_id', 'method', and 'rank' columns")
+  if (!group_col %in% names(ranks_df)) {
+    stop("'", group_col, "' column not found in ranks_df")
+  }
+  if (!all(c("method", "rank") %in% names(ranks_df))) {
+    stop("'ranks_df' must contain 'method' and 'rank' columns")
   }
 
   methods <- unique(ranks_df$method)
-  scenarios <- unique(ranks_df$scenario_id)
+  scenarios <- unique(ranks_df[[group_col]])
 
   n <- length(scenarios)
   k <- length(methods)
@@ -120,7 +123,7 @@ friedman_test <- function(ranks_df) {
 
   for (i in seq_along(scenarios)) {
     for (j in seq_along(methods)) {
-      sub <- ranks_df[ranks_df$scenario_id == scenarios[i] &
+      sub <- ranks_df[ranks_df[[group_col]] == scenarios[i] &
                       ranks_df$method == methods[j], ]
       if (nrow(sub) == 1) {
         rank_matrix[i, j] <- sub$rank
@@ -197,20 +200,27 @@ compute_critical_difference <- function(n_methods, n_scenarios, alpha = 0.05) {
 #' This provides pairwise comparisons between all methods with family-wise
 #' error rate control.
 #'
-#' @param ranks_df Data frame from compute_ranks() with scenario_id, method, rank columns
+#' @param ranks_df Data frame from compute_ranks() with grouping column, method, rank columns
 #' @param alpha Significance level (default 0.05)
+#' @param group_col Character, name of the grouping column (default "scenario_id")
 #' @return List with pvalues matrix, mean_ranks, critical_difference, and significant_pairs
 #' @export
-nemenyi_posthoc <- function(ranks_df, alpha = 0.05) {
+nemenyi_posthoc <- function(ranks_df, alpha = 0.05, group_col = "scenario_id") {
   if (!is.data.frame(ranks_df)) {
     stop("'ranks_df' must be a data.frame")
   }
-  if (!all(c("scenario_id", "method", "rank") %in% names(ranks_df))) {
-    stop("'ranks_df' must contain 'scenario_id', 'method', and 'rank' columns")
+  if (alpha <= 0 || alpha >= 1) {
+    stop("alpha must be between 0 and 1")
+  }
+  if (!group_col %in% names(ranks_df)) {
+    stop("'", group_col, "' column not found in ranks_df")
+  }
+  if (!all(c("method", "rank") %in% names(ranks_df))) {
+    stop("'ranks_df' must contain 'method' and 'rank' columns")
   }
 
   methods <- unique(ranks_df$method)
-  scenarios <- unique(ranks_df$scenario_id)
+  scenarios <- unique(ranks_df[[group_col]])
 
   k <- length(methods)
   n <- length(scenarios)
@@ -226,7 +236,7 @@ nemenyi_posthoc <- function(ranks_df, alpha = 0.05) {
 
   for (i in seq_along(scenarios)) {
     for (j in seq_along(methods)) {
-      sub <- ranks_df[ranks_df$scenario_id == scenarios[i] &
+      sub <- ranks_df[ranks_df[[group_col]] == scenarios[i] &
                       ranks_df$method == methods[j], ]
       if (nrow(sub) == 1) {
         rank_matrix[i, j] <- sub$rank
