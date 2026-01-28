@@ -64,6 +64,7 @@ predict.cf_model <- function(object,
     "hdml"      = predict_cf_hdml(object, type = type, ...),
     "hdps"      = predict_cf_hdps(object, type = type, ...),
     "bcf"       = predict_cf_bcf(object, type = type, ...),
+    "tmle"      = predict_cf_tmle(object, type = type, ...),
     stop(sprintf("Unknown method: %s", object$method))
   )
 }
