@@ -1,0 +1,131 @@
+---
+title: "Benchmark Comparison of Causal Inference Methods for High-Dimensional Data"
+subtitle: "cfomics Benchmark Suite"
+author: "cfomics Development Team"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    latex_engine: xelatex
+    keep_tex: false
+    fig_caption: true
+    fig_width: 8
+    fig_height: 6
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: hide
+params:
+  lang: "en"
+  results_dir: "../results"
+  include_appendix: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  fig.pos = "H",
+  out.width = "100%",
+  cache = FALSE
+)
+
+# Required packages
+library(ggplot2)
+library(knitr)
+
+# Optional packages with graceful fallback
+if (requireNamespace("kableExtra", quietly = TRUE)) {
+  library(kableExtra)
+}
+if (requireNamespace("patchwork", quietly = TRUE)) {
+  library(patchwork)
+}
+
+# Source benchmark infrastructure
+source(file.path(dirname(knitr::current_input()), "..", "R", "metrics.R"))
+source(file.path(dirname(knitr::current_input()), "..", "R", "reporting.R"))
+
+# Language suffix for child documents
+lang_suffix <- params$lang
+```
+
+```{r load-data}
+# Load benchmark results
+results_dir <- params$results_dir
+
+# Resolve relative path if needed
+if (!file.exists(results_dir)) {
+  results_dir <- file.path(dirname(knitr::current_input()), params$results_dir)
+}
+
+# Check for required data files
+raw_file <- file.path(results_dir, "summary", "raw_results.csv")
+agg_file <- file.path(results_dir, "summary", "aggregated_summary.csv")
+
+data_available <- file.exists(raw_file) && file.exists(agg_file)
+
+if (data_available) {
+  raw_df <- read.csv(raw_file, stringsAsFactors = FALSE)
+  agg_df <- read.csv(agg_file, stringsAsFactors = FALSE)
+
+  # Compute statistical test results if sufficient data
+  if (length(unique(agg_df$scenario_id)) >= 2 && length(unique(agg_df$method)) >= 2) {
+    ranks_df <- compute_ranks(agg_df, "rmse_ate", groups = "scenario_id")
+    friedman_result <- friedman_test(ranks_df)
+    nemenyi_result <- nemenyi_posthoc(ranks_df)
+  } else {
+    friedman_result <- NULL
+    nemenyi_result <- NULL
+  }
+} else {
+  raw_df <- NULL
+  agg_df <- NULL
+  friedman_result <- NULL
+  nemenyi_result <- NULL
+  warning("Benchmark results not found. Report will show placeholder content.")
+}
+```
+
+```{r child-introduction, child = paste0("sections/01_introduction_", lang_suffix, ".Rmd")}
+```
+
+```{r child-methods, child = paste0("sections/02_methods_", lang_suffix, ".Rmd")}
+```
+
+```{r child-simulation-design, child = paste0("sections/03_simulation_design_", lang_suffix, ".Rmd")}
+```
+
+```{r child-results, child = paste0("sections/04_results_", lang_suffix, ".Rmd")}
+```
+
+```{r child-discussion, child = paste0("sections/05_discussion_", lang_suffix, ".Rmd")}
+```
+
+```{r child-appendix, child = if(params$include_appendix) paste0("sections/06_appendix_", lang_suffix, ".Rmd") else NULL}
+```
+
+---
+
+**Report Generated:** `r format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")`
+
+**R Version:** `r R.version.string`
+
+**cfomics Version:** `r if(requireNamespace("cfomics", quietly = TRUE)) packageVersion("cfomics") else "development"`

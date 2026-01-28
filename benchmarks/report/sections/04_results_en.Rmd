@@ -1,0 +1,244 @@
+# Results
+
+This section presents the benchmark results comparing the five causal inference methods across all simulation scenarios.
+
+```{r results-check, echo=FALSE}
+if (!data_available) {
+  cat("\n**Note:** Benchmark results not yet available. This section will be populated after running the full benchmark suite.\n\n")
+  cat("To generate results, run:\n")
+  cat("```r\n")
+  cat("source('benchmarks/run_full_benchmark.R')\n")
+  cat("```\n\n")
+}
+```
+
+## Overall Performance Summary
+
+```{r overall-summary, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  # Compute overall metrics by method
+  overall <- aggregate(
+    cbind(rmse_ate, mean_bias, coverage) ~ method,
+    data = agg_df,
+    FUN = function(x) mean(x, na.rm = TRUE)
+  )
+  overall <- overall[order(overall$rmse_ate), ]
+
+  if (requireNamespace("kableExtra", quietly = TRUE)) {
+    kableExtra::kbl(overall, booktabs = TRUE, digits = 3,
+                    caption = "Overall performance summary (averaged across all scenarios)",
+                    col.names = c("Method", "RMSE", "Mean Bias", "Coverage")) |>
+      kableExtra::kable_styling(latex_options = c("hold_position"))
+  } else {
+    knitr::kable(overall, digits = 3,
+                 caption = "Overall performance summary (averaged across all scenarios)")
+  }
+}
+```
+
+## Method Performance Heatmap
+
+The following heatmap displays RMSE by method and scenario. Blue indicates better (lower) RMSE; red indicates worse (higher) RMSE.
+
+```{r rmse-heatmap, eval=data_available, fig.cap="RMSE heatmap across methods and scenarios", fig.height=8}
+if (data_available && nrow(agg_df) > 0) {
+  plot_method_heatmap(agg_df, "rmse_ate",
+                      lower_is_better = TRUE,
+                      title = "RMSE by Method and Scenario")
+}
+```
+
+## Bias Distribution
+
+```{r bias-boxplot, eval=data_available, fig.cap="Distribution of bias across replications by method"}
+if (data_available && !is.null(raw_df) && nrow(raw_df) > 0 && "bias_ate" %in% names(raw_df)) {
+  plot_bias_boxplot(raw_df, bias_col = "bias_ate",
+                    title = "Bias Distribution by Method (All Scenarios)")
+}
+```
+
+The dashed red line indicates zero bias. Methods with distributions centered on this line exhibit low systematic bias.
+
+## Coverage Analysis
+
+Coverage indicates the proportion of 95% confidence intervals that contain the true treatment effect. Nominal coverage is 95% (indicated by the blue midpoint in the heatmap).
+
+```{r coverage-heatmap, eval=data_available, fig.cap="Coverage heatmap (95% nominal)", fig.height=8}
+if (data_available && nrow(agg_df) > 0 && "coverage" %in% names(agg_df)) {
+  plot_coverage_heatmap(agg_df, coverage_col = "coverage",
+                        nominal = 0.95,
+                        title = "95% CI Coverage by Method and Scenario")
+}
+```
+
+Under-coverage (red) suggests confidence intervals are too narrow; over-coverage (green) suggests intervals are conservative.
+
+## Bias-Variance Decomposition
+
+Mean squared error can be decomposed into squared bias and variance components. This decomposition reveals whether errors are primarily systematic (bias) or random (variance).
+
+```{r bias-variance, eval=data_available, fig.cap="Bias-variance decomposition by method"}
+if (data_available && nrow(agg_df) > 0 && all(c("mean_bias", "sd_bias") %in% names(agg_df))) {
+  plot_bias_variance(agg_df, bias_col = "mean_bias", var_col = "sd_bias",
+                     is_sd = TRUE,
+                     title = "Bias-Variance Decomposition")
+}
+```
+
+## Statistical Comparison
+
+We use the Friedman test to assess whether significant differences exist between methods, followed by Nemenyi post-hoc comparisons.
+
+```{r friedman-test, eval=data_available}
+if (data_available && !is.null(friedman_result)) {
+  cat(sprintf("**Friedman Test Results:**\n\n"))
+  cat(sprintf("- Chi-squared statistic: %.3f\n", friedman_result$statistic))
+  cat(sprintf("- Degrees of freedom: %d\n", friedman_result$df))
+  cat(sprintf("- P-value: %.6f\n", friedman_result$p_value))
+
+  if (friedman_result$p_value < 0.05) {
+    cat("\n**Conclusion:** Significant differences exist between methods (p < 0.05).\n")
+  } else {
+    cat("\n**Conclusion:** No significant differences between methods (p >= 0.05).\n")
+  }
+}
+```
+
+### Critical Difference Diagram
+
+The Critical Difference (CD) diagram visualizes the Nemenyi post-hoc test results. Methods connected by a horizontal bar are not significantly different from each other.
+
+```{r cd-diagram, eval=data_available, fig.cap="Critical Difference diagram for method comparison"}
+if (data_available && !is.null(friedman_result) && !is.null(nemenyi_result)) {
+  plot_cd_diagram(friedman_result, nemenyi_result,
+                  title = "Critical Difference Diagram (RMSE ranking)")
+}
+```
+
+### Mean Ranks
+
+```{r mean-ranks, eval=data_available}
+if (data_available && !is.null(friedman_result)) {
+  ranks_sorted <- sort(friedman_result$mean_ranks)
+  ranks_df <- data.frame(
+    Rank = seq_along(ranks_sorted),
+    Method = names(ranks_sorted),
+    `Mean Rank` = round(ranks_sorted, 3),
+    check.names = FALSE
+  )
+
+  if (requireNamespace("kableExtra", quietly = TRUE)) {
+    kableExtra::kbl(ranks_df, booktabs = TRUE,
+                    caption = "Mean ranks across scenarios (lower is better)") |>
+      kableExtra::kable_styling(latex_options = c("hold_position"))
+  } else {
+    knitr::kable(ranks_df, caption = "Mean ranks across scenarios (lower is better)")
+  }
+}
+```
+
+## Computation Time
+
+```{r computation-time, eval=data_available, fig.cap="Computation time comparison (log scale)"}
+if (data_available && nrow(agg_df) > 0 && "mean_time" %in% names(agg_df)) {
+  plot_computation_time(agg_df, time_col = "mean_time",
+                        log_scale = TRUE,
+                        title = "Computation Time by Method")
+}
+```
+
+## Scenario-Specific Results
+
+### S1: Baseline Performance
+
+```{r s1-results, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  s1_df <- agg_df[grepl("^S1_", agg_df$scenario_id), ]
+  if (nrow(s1_df) > 0) {
+    s1_summary <- aggregate(
+      cbind(rmse_ate, mean_bias, coverage) ~ method,
+      data = s1_df,
+      FUN = function(x) mean(x, na.rm = TRUE)
+    )
+    s1_summary <- s1_summary[order(s1_summary$rmse_ate), ]
+
+    if (requireNamespace("kableExtra", quietly = TRUE)) {
+      kableExtra::kbl(s1_summary, booktabs = TRUE, digits = 3,
+                      caption = "Baseline scenario (S1) performance") |>
+        kableExtra::kable_styling(latex_options = c("hold_position"))
+    } else {
+      knitr::kable(s1_summary, digits = 3, caption = "Baseline scenario (S1) performance")
+    }
+  }
+}
+```
+
+### S7: Weak Overlap Analysis
+
+This scenario tests method robustness to positivity violations. Methods relying heavily on propensity scores should show degraded performance as overlap weakens.
+
+```{r s7-results, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  s7_df <- agg_df[grepl("^S7_", agg_df$scenario_id), ]
+  if (nrow(s7_df) > 0) {
+    # Order by overlap strength
+    overlap_order <- c("S7_good", "S7_moderate", "S7_weak", "S7_extreme")
+    s7_df$scenario_id <- factor(s7_df$scenario_id, levels = overlap_order)
+    s7_df <- s7_df[order(s7_df$scenario_id), ]
+
+    if (requireNamespace("kableExtra", quietly = TRUE)) {
+      kableExtra::kbl(s7_df[, c("scenario_id", "method", "rmse_ate", "coverage")],
+                      booktabs = TRUE, digits = 3,
+                      caption = "Weak overlap scenario (S7) results") |>
+        kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"))
+    } else {
+      knitr::kable(s7_df[, c("scenario_id", "method", "rmse_ate", "coverage")],
+                   digits = 3, caption = "Weak overlap scenario (S7) results")
+    }
+  }
+}
+```
+
+### S10: Sensitivity to Unobserved Confounding
+
+This scenario tests the fundamental assumption of unconfoundedness. All methods should show increasing bias as unobserved confounding strength increases.
+
+```{r s10-results, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  s10_df <- agg_df[grepl("^S10_", agg_df$scenario_id), ]
+  if (nrow(s10_df) > 0) {
+    # Order by confounding strength
+    strength_order <- c("S10_str0", "S10_str0.5", "S10_str1", "S10_str2")
+    s10_df$scenario_id <- factor(s10_df$scenario_id, levels = strength_order)
+    s10_df <- s10_df[order(s10_df$scenario_id, s10_df$method), ]
+
+    if (requireNamespace("kableExtra", quietly = TRUE)) {
+      kableExtra::kbl(s10_df[, c("scenario_id", "method", "rmse_ate", "mean_bias")],
+                      booktabs = TRUE, digits = 3,
+                      caption = "Unobserved confounding scenario (S10) results") |>
+        kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"))
+    } else {
+      knitr::kable(s10_df[, c("scenario_id", "method", "rmse_ate", "mean_bias")],
+                   digits = 3, caption = "Unobserved confounding scenario (S10) results")
+    }
+  }
+}
+```
+
+## Combined Results Figure
+
+```{r combined-figure, eval=data_available, fig.cap="Comprehensive benchmark results summary", fig.width=12, fig.height=10}
+if (data_available && nrow(agg_df) > 0) {
+  tryCatch({
+    create_benchmark_report_figure(
+      agg_df = agg_df,
+      raw_df = raw_df,
+      friedman_result = friedman_result,
+      nemenyi_result = nemenyi_result,
+      title = "cfomics Benchmark Results Summary"
+    )
+  }, error = function(e) {
+    cat("Combined figure could not be generated:", conditionMessage(e), "\n")
+  })
+}
+```

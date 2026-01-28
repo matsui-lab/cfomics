@@ -1,0 +1,237 @@
+# Simulation Design
+
+This section describes the simulation framework used to evaluate the causal inference methods. We designed eleven data-generating processes (DGPs) to systematically test method performance under varying conditions of dimensionality, treatment effect heterogeneity, and assumption violations.
+
+## General Framework
+
+### Data Generation Process
+
+Each DGP follows the general structure:
+
+1. **Covariate generation**: $X \sim \mathcal{N}(0, \Sigma)$ where $\Sigma$ depends on the scenario
+2. **Propensity score**: $\pi(X) = P(T=1 \mid X) = \text{expit}(g(X))$
+3. **Treatment assignment**: $T \sim \text{Bernoulli}(\pi(X))$
+4. **Potential outcomes**:
+   - $Y(0) = f_0(X) + \epsilon$
+   - $Y(1) = f_1(X) + \epsilon = f_0(X) + \tau(X) + \epsilon$
+5. **Observed outcome**: $Y = T \cdot Y(1) + (1-T) \cdot Y(0)$
+
+where $\epsilon \sim \mathcal{N}(0, \sigma^2)$ with $\sigma^2$ calibrated for target signal-to-noise ratio.
+
+### True Treatment Effects
+
+The true Average Treatment Effect is computed as:
+$$\tau_{true} = \frac{1}{n}\sum_{i=1}^n \tau(X_i)$$
+
+For scenarios with homogeneous effects, $\tau(X) = \tau_0$ (constant).
+
+### Evaluation Metrics
+
+We evaluate methods using four primary metrics:
+
+```{r metrics-table, echo=FALSE}
+metrics_table <- data.frame(
+  Metric = c("Bias", "RMSE", "PEHE", "Coverage"),
+  Formula = c(
+    "$\\hat{\\tau} - \\tau_{true}$",
+    "$\\sqrt{(\\hat{\\tau} - \\tau_{true})^2}$",
+    "$\\sqrt{\\frac{1}{n}\\sum_i(\\hat{\\tau}_i - \\tau_i)^2}$",
+    "$\\mathbb{1}[\\tau_{true} \\in CI_{95}]$"
+  ),
+  Description = c(
+    "Systematic estimation error (should be near 0)",
+    "Root mean squared error combining bias and variance",
+    "Precision in estimating heterogeneous effects",
+    "Proportion of 95% CIs containing true ATE"
+  )
+)
+
+if (requireNamespace("kableExtra", quietly = TRUE)) {
+  kableExtra::kbl(metrics_table, booktabs = TRUE, escape = FALSE,
+                  caption = "Primary evaluation metrics") |>
+    kableExtra::kable_styling(latex_options = c("hold_position"))
+} else {
+  knitr::kable(metrics_table, caption = "Primary evaluation metrics")
+}
+```
+
+## Scenario Descriptions
+
+### S1: Baseline (dgp_baseline)
+
+The baseline scenario establishes reference performance under ideal conditions:
+
+- **Covariates**: $X \sim \mathcal{N}(0, I_p)$, independent standard normal
+- **Propensity**: $\pi(X) = \text{expit}(0.5 X_1 + 0.5 X_2 + 0.5 X_3)$
+- **Outcome**: $Y(0) = X_1 + X_2 + X_3 + \epsilon$
+- **Treatment effect**: $\tau = 1$ (homogeneous)
+- **Configurations**: $n \in \{500, 1000, 2000\}$, $p \in \{50, 100\}$
+
+This scenario satisfies all standard causal assumptions with a linear, correctly specified model.
+
+### S2: Dimension Sweep (dgp_dimension_sweep)
+
+Tests method scalability as dimensionality increases:
+
+- **Covariates**: Same as baseline
+- **Configurations**: $n \in \{500, 1000\}$, $p \in \{100, 500, 1000\}$
+- **Challenge**: $p/n$ ratio from 0.2 to 2.0
+
+Methods should maintain performance as $p$ grows, leveraging regularization or variable selection.
+
+### S3: Heterogeneous Effects - Linear (dgp_heterogeneous_linear)
+
+Tests ability to capture treatment effect heterogeneity:
+
+- **Treatment effect**: $\tau(X) = \tau_0 + \gamma \cdot X_1$
+- **Strength parameter**: $\gamma \in \{0, 0.5, 1.0, 2.0\}$
+- **Challenge**: ITE estimation accuracy
+
+Methods like BCF, designed for heterogeneous effects, should excel here.
+
+### S4: Heterogeneous Effects - Complex
+
+Three sub-scenarios testing different heterogeneity patterns:
+
+**S4a: Nonlinear heterogeneity (dgp_heterogeneous_nonlinear)**
+$$\tau(X) = 1 + \sin(\pi X_1) + X_2^2$$
+
+**S4b: Subgroup heterogeneity (dgp_heterogeneous_subgroup)**
+$$\tau(X) = \begin{cases} 2 & \text{if } X_1 > 0 \\ 0.5 & \text{if } X_1 \leq 0 \end{cases}$$
+
+**S4c: Qualitative interaction (dgp_heterogeneous_qualitative)**
+$$\tau(X) = \text{sign}(X_1) \cdot |X_1|$$
+
+Treatment effect can be positive or negative depending on covariates.
+
+### S5: Nonlinear Confounding (dgp_nonlinear_confounding)
+
+Tests robustness to model misspecification:
+
+- **Configurations**: Five nonlinear types
+
+| Type | Propensity Function | Outcome Function |
+|------|--------------------|--------------------|
+| Quadratic | $g(X) = X_1^2 + X_2^2$ | $f(X) = X_1^2 + X_2^2$ |
+| Trigonometric | $g(X) = \sin(\pi X_1)$ | $f(X) = \cos(\pi X_2)$ |
+| Interaction | $g(X) = X_1 \cdot X_2$ | $f(X) = X_1 \cdot X_2 \cdot X_3$ |
+| Combined | Mix of above | Mix of above |
+| Threshold | $g(X) = \mathbb{1}[X_1 > 0]$ | Step functions |
+
+Linear methods should struggle; tree-based methods should adapt.
+
+### S6: Dense Confounding (dgp_dense_confounding)
+
+Tests performance when many covariates are true confounders:
+
+- **Covariates**: $p = 500$
+- **True confounders**: $k \in \{10, 50, 100, 200\}$
+- **Challenge**: Variable selection under dense confounding
+
+Methods with good variable selection (HDPS, HDML) should perform well.
+
+### S7: Weak Overlap (dgp_weak_overlap)
+
+Tests robustness to positivity violations:
+
+- **Overlap strength**: good, moderate, weak, extreme
+- **Propensity range**:
+  - Good: $[0.2, 0.8]$
+  - Moderate: $[0.1, 0.9]$
+  - Weak: $[0.05, 0.95]$
+  - Extreme: $[0.01, 0.99]$
+
+IPW-based methods should degrade; outcome regression may be more stable.
+
+### S8: Covariate Shift (dgp_covariate_shift)
+
+Tests performance when treatment affects covariate distributions:
+
+**S8a: Mean shift**
+$$X \mid T=1 \sim \mathcal{N}(\mu_1, I), \quad X \mid T=0 \sim \mathcal{N}(\mu_0, I)$$
+
+**S8b: Variance shift**
+$$X \mid T=1 \sim \mathcal{N}(0, \sigma_1^2 I), \quad X \mid T=0 \sim \mathcal{N}(0, \sigma_0^2 I)$$
+
+### S9: Correlated Confounding (dgp_correlated_confounding)
+
+Tests performance with non-independent covariates:
+
+- **Correlation structures**:
+  - **Block**: Covariates in correlated blocks
+  - **AR(1)**: Autoregressive correlation decay
+  - **Factor**: Latent factor structure
+
+Real omics data typically exhibit strong correlation patterns.
+
+### S10: Unobserved Confounding (dgp_unobserved_confounding)
+
+Tests sensitivity to unmeasured confounders:
+
+- **Unobserved confounder**: $U \sim \mathcal{N}(0, 1)$
+- **Affects**: Both treatment and outcome
+- **Strength parameter**: $\gamma_U \in \{0, 0.5, 1.0, 2.0\}$
+
+All methods should show increasing bias as $\gamma_U$ increases. This tests the fundamental limitation of observational methods.
+
+### S11: Collider Bias (dgp_collider)
+
+Tests vulnerability to collider conditioning:
+
+- **Collider variable**: $C = f(T, Y) + \epsilon$
+- **Included in covariates** (incorrectly)
+- **Strength parameter**: $\gamma_C \in \{0, 0.5, 1.0, 2.0\}$
+
+Methods that naively include all covariates will show bias; variable selection methods may avoid the collider.
+
+## Scenario Summary
+
+```{r scenario-summary, echo=FALSE}
+scenario_summary <- data.frame(
+  Scenario = c("S1", "S2", "S3", "S4a-c", "S5", "S6", "S7", "S8", "S9", "S10", "S11"),
+  Description = c(
+    "Baseline (linear, correct spec.)",
+    "Dimension sweep (p up to 1000)",
+    "Linear heterogeneity",
+    "Complex heterogeneity patterns",
+    "Nonlinear confounding",
+    "Dense confounding",
+    "Weak overlap",
+    "Covariate shift",
+    "Correlated confounders",
+    "Unobserved confounding",
+    "Collider bias"
+  ),
+  `Primary Challenge` = c(
+    "None (reference)",
+    "High dimensionality",
+    "ITE estimation",
+    "Nonlinear effects",
+    "Model misspecification",
+    "Variable selection",
+    "Positivity violation",
+    "Distribution shift",
+    "Correlation handling",
+    "Identifiability",
+    "Variable selection"
+  ),
+  `n Configs` = c(6, 6, 4, 3, 5, 4, 4, 2, 3, 4, 4),
+  check.names = FALSE
+)
+
+if (requireNamespace("kableExtra", quietly = TRUE)) {
+  kableExtra::kbl(scenario_summary, booktabs = TRUE,
+                  caption = "Summary of simulation scenarios") |>
+    kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"))
+} else {
+  knitr::kable(scenario_summary, caption = "Summary of simulation scenarios")
+}
+```
+
+## Replication Design
+
+- **Replications per scenario**: 50 independent datasets
+- **Random seeds**: Reproducible via `base_seed + job_index`
+- **Total simulation runs**: `r nrow(expand.grid(scenario = 1:45, rep = 1:50))` (45 configurations x 50 replications)
+
+Each method is evaluated on identical datasets to ensure fair comparison.

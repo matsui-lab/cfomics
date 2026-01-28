@@ -1,0 +1,59 @@
+# Introduction
+
+## Background
+
+Causal inference from observational data is a fundamental challenge in biomedical research, epidemiology, and social sciences. When randomized controlled trials are infeasible due to ethical, practical, or economic constraints, researchers must rely on observational studies to estimate treatment effects. However, observational data present substantial challenges: confounding bias, selection bias, and model misspecification can all lead to erroneous conclusions.
+
+The advent of high-throughput technologies in biology---including genomics, transcriptomics, proteomics, and metabolomics---has created an additional layer of complexity. Modern biomedical datasets routinely contain hundreds to thousands of potential confounders, far exceeding the sample sizes typically available. This high-dimensional setting ($p \gg n$ or $p \approx n$) violates the assumptions underlying classical causal inference methods and requires specialized approaches.
+
+## The High-Dimensional Challenge
+
+Classical causal inference methods such as inverse probability weighting (IPW) and outcome regression face several difficulties in high-dimensional settings:
+
+1. **Curse of dimensionality**: Propensity score models become unstable when the number of covariates approaches or exceeds the sample size.
+
+2. **Variable selection**: Determining which covariates to include is critical; including non-confounders can reduce efficiency, while excluding true confounders introduces bias.
+
+3. **Model misspecification**: Linear models may inadequately capture complex relationships between covariates, treatment, and outcome.
+
+4. **Weak overlap**: As dimensionality increases, treated and control groups may have minimal covariate overlap, leading to extreme propensity score weights.
+
+## Benchmark Objectives
+
+This benchmark study systematically evaluates causal inference methods designed for high-dimensional data. Our objectives are:
+
+1. **Performance comparison**: Compare the bias, variance, and coverage properties of five methods across diverse data-generating processes.
+
+2. **Robustness assessment**: Evaluate method performance under violations of key assumptions including overlap, correct model specification, and unconfoundedness.
+
+3. **Practical guidance**: Provide evidence-based recommendations for method selection based on data characteristics and scientific context.
+
+4. **Software validation**: Verify the implementations in the cfomics package against expected theoretical properties.
+
+## Methods Under Evaluation
+
+We evaluate five methods representing distinct approaches to high-dimensional causal inference:
+
+| Method | Approach | Key Feature |
+|--------|----------|-------------|
+| G-formula | Outcome regression | Direct outcome modeling |
+| HDML | Machine learning | Debiased/double machine learning |
+| HDPS | Propensity-based | High-dimensional propensity scoring |
+| BCF | Bayesian | Bayesian Causal Forests |
+| TMLE | Semiparametric | Targeted Maximum Likelihood Estimation |
+
+Each method embodies different assumptions, estimation strategies, and computational requirements. By evaluating them across a comprehensive set of scenarios, we aim to identify their relative strengths and limitations.
+
+## Report Organization
+
+This report is organized as follows:
+
+- **Section 2** provides detailed descriptions of each method, including theoretical foundations and implementation details.
+
+- **Section 3** describes the simulation design, including eleven data-generating processes (DGPs) spanning baseline conditions, dimensionality challenges, heterogeneous effects, and assumption violations.
+
+- **Section 4** presents the benchmark results, including visualizations and statistical comparisons.
+
+- **Section 5** discusses the findings, provides method selection guidelines, and outlines limitations.
+
+- **Section 6** (Appendix) contains supplementary tables, full parameter specifications, and session information.

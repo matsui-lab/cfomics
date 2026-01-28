@@ -1,0 +1,210 @@
+# Methods
+
+This section describes the five causal inference methods evaluated in this benchmark. For each method, we outline the theoretical foundation, key assumptions, and implementation details as used in the cfomics package.
+
+## Notation and Setup
+
+Consider observational data $(Y_i, T_i, X_i)$ for $i = 1, \ldots, n$ where:
+
+- $Y_i \in \mathbb{R}$ is the observed outcome
+- $T_i \in \{0, 1\}$ is the binary treatment indicator
+- $X_i \in \mathbb{R}^p$ is a $p$-dimensional covariate vector
+
+Under the potential outcomes framework, let $Y_i(1)$ and $Y_i(0)$ denote the potential outcomes under treatment and control, respectively. The observed outcome is $Y_i = T_i Y_i(1) + (1-T_i) Y_i(0)$.
+
+The **Average Treatment Effect (ATE)** is defined as:
+$$\tau = \mathbb{E}[Y(1) - Y(0)]$$
+
+The **Individual Treatment Effect (ITE)** for unit $i$ is:
+$$\tau_i = Y_i(1) - Y_i(0)$$
+
+We operate under the standard causal assumptions:
+
+1. **SUTVA**: $Y_i = Y_i(T_i)$ (no interference between units)
+2. **Consistency**: Observed outcome equals potential outcome corresponding to received treatment
+3. **Unconfoundedness**: $\{Y(0), Y(1)\} \perp\!\!\!\perp T \mid X$
+4. **Overlap (Positivity)**: $0 < P(T=1 \mid X) < 1$ for all $X$
+
+## G-formula (Outcome Regression)
+
+### Theoretical Foundation
+
+The G-formula, also known as standardization or outcome regression, estimates the ATE by modeling the conditional outcome mean and integrating over the covariate distribution:
+
+$$\hat{\tau}_{GF} = \frac{1}{n}\sum_{i=1}^n \left[\hat{\mu}_1(X_i) - \hat{\mu}_0(X_i)\right]$$
+
+where $\hat{\mu}_t(x) = \mathbb{E}[Y \mid T=t, X=x]$ is the estimated conditional mean.
+
+### High-Dimensional Adaptation
+
+In high dimensions, standard regression fails. Our implementation uses regularized regression (Elastic Net) to estimate $\mu_t(x)$:
+
+$$\hat{\mu}_t = \arg\min_\mu \sum_{i:T_i=t} (Y_i - \mu(X_i))^2 + \lambda \left(\alpha \|\mu\|_1 + (1-\alpha)\|\mu\|_2^2\right)$$
+
+### Key Properties
+
+- **Strengths**: Simple, interpretable, efficient when outcome model is correctly specified
+- **Limitations**: Sensitive to outcome model misspecification; no principled variable selection for confounders
+
+### Implementation
+
+```r
+cf_fit(formula, data, method = "gformula")
+```
+
+Uses `glmnet` for regularized regression with cross-validation for $\lambda$ selection.
+
+## HDML (High-Dimensional Machine Learning / Double ML)
+
+### Theoretical Foundation
+
+HDML implements the double/debiased machine learning framework of Chernozhukov et al. (2018). The key insight is to use cross-fitting to avoid overfitting bias while using flexible machine learning methods.
+
+The estimator solves the moment condition:
+$$\mathbb{E}\left[\psi(Y, T, X; \tau, \eta_0)\right] = 0$$
+
+where $\psi$ is the doubly-robust influence function:
+$$\psi = \left(\frac{T}{\pi(X)} - \frac{1-T}{1-\pi(X)}\right)(Y - \mu_T(X)) + \mu_1(X) - \mu_0(X) - \tau$$
+
+and $\eta_0 = (\mu_0, \mu_1, \pi)$ are nuisance parameters estimated via cross-fitting.
+
+### Cross-Fitting Procedure
+
+1. Split data into $K$ folds
+2. For each fold $k$:
+   - Train nuisance models $(\hat{\mu}_0^{-k}, \hat{\mu}_1^{-k}, \hat{\pi}^{-k})$ on all data except fold $k$
+   - Predict on fold $k$
+3. Solve moment condition using all predictions
+
+### Key Properties
+
+- **Strengths**: Doubly robust (consistent if either outcome or propensity model is correct); rate-tolerant (nuisance parameters can converge at slower rates)
+- **Limitations**: Requires careful tuning of ML methods; computationally intensive
+
+### Implementation
+
+```r
+cf_fit(formula, data, method = "hdml")
+```
+
+Uses ensemble of learners (random forest, gradient boosting, elastic net) for nuisance estimation.
+
+## HDPS (High-Dimensional Propensity Score)
+
+### Theoretical Foundation
+
+The High-Dimensional Propensity Score (HDPS) method of Schneeweiss et al. (2009) adapts propensity score methods to high-dimensional settings through data-driven covariate prioritization.
+
+The ATE is estimated via inverse probability weighting:
+$$\hat{\tau}_{HDPS} = \frac{1}{n}\sum_{i=1}^n \frac{T_i Y_i}{\hat{\pi}(X_i)} - \frac{1}{n}\sum_{i=1}^n \frac{(1-T_i) Y_i}{1-\hat{\pi}(X_i)}$$
+
+where $\hat{\pi}(x)$ is the propensity score estimated using a selected subset of covariates.
+
+### Covariate Prioritization Algorithm
+
+1. **Recoding**: Create binary indicators from continuous covariates
+2. **Prevalence filtering**: Remove covariates appearing in <5% of subjects
+3. **Bias ranking**: Rank covariates by their potential to confound (Bross bias formula)
+4. **Selection**: Select top $k$ covariates for propensity model
+
+### Key Properties
+
+- **Strengths**: Interpretable selection process; good with many binary indicators (e.g., healthcare claims)
+- **Limitations**: Relies on propensity model only; sensitive to overlap violations; designed for binary covariates
+
+### Implementation
+
+```r
+cf_fit(formula, data, method = "hdps")
+```
+
+Implements the full HDPS algorithm with configurable selection parameters.
+
+## BCF (Bayesian Causal Forests)
+
+### Theoretical Foundation
+
+Bayesian Causal Forests (Hahn et al., 2020) extend BART (Bayesian Additive Regression Trees) to causal inference by separating the prognostic and treatment effect functions:
+
+$$Y_i = f(X_i) + \tau(X_i) T_i + \epsilon_i$$
+
+where:
+- $f(X_i)$ captures the prognostic effect (baseline risk)
+- $\tau(X_i)$ captures the heterogeneous treatment effect
+
+Both $f$ and $\tau$ are modeled using BART priors, but with different regularization:
+
+- $f$ uses a standard BART prior to capture complex baseline relationships
+- $\tau$ uses a more regularized prior, shrinking toward homogeneous effects
+
+### Propensity Score Integration
+
+BCF incorporates the estimated propensity score $\hat{\pi}(X_i)$ as a covariate in $f$, which:
+- Provides targeted regularization against confounding
+- Improves performance under RIC (regularization-induced confounding)
+
+### Key Properties
+
+- **Strengths**: Excellent uncertainty quantification; handles heterogeneity naturally; robust to model misspecification
+- **Limitations**: Computationally expensive; MCMC convergence requires monitoring
+
+### Implementation
+
+```r
+cf_fit(formula, data, method = "bcf")
+```
+
+Uses the `bcf` R package with MCMC sampling. Default: 1000 burn-in, 2000 posterior samples.
+
+## TMLE (Targeted Maximum Likelihood Estimation)
+
+### Theoretical Foundation
+
+TMLE (van der Laan & Rose, 2011) is a semiparametric efficient estimator that combines initial outcome regression with a targeting step to ensure optimal bias-variance tradeoff.
+
+### Algorithm
+
+1. **Initial estimation**: Fit outcome model $\hat{\mu}_0^{(0)}(X)$ and propensity model $\hat{\pi}(X)$
+2. **Targeting**: Update $\hat{\mu}$ by fitting:
+   $$\text{logit}(\hat{\mu}^{(1)}) = \text{logit}(\hat{\mu}^{(0)}) + \epsilon \cdot H$$
+   where $H = T/\hat{\pi}(X) - (1-T)/(1-\hat{\pi}(X))$ is the clever covariate
+3. **Substitution**: Compute ATE using targeted predictions:
+   $$\hat{\tau}_{TMLE} = \frac{1}{n}\sum_i \hat{\mu}_1^{(1)}(X_i) - \hat{\mu}_0^{(1)}(X_i)$$
+
+### Key Properties
+
+- **Strengths**: Doubly robust; semiparametrically efficient; respects parameter bounds; valid inference
+- **Limitations**: Requires careful implementation; can be sensitive to extreme propensity scores
+
+### Super Learner Integration
+
+Our implementation uses Super Learner (ensemble of ML methods) for initial estimation:
+
+```r
+cf_fit(formula, data, method = "tmle")
+```
+
+Uses the `tmle` R package with cross-validated Super Learner library.
+
+## Method Comparison Summary
+
+```{r method-comparison-table, echo=FALSE}
+method_table <- data.frame(
+  Method = c("G-formula", "HDML", "HDPS", "BCF", "TMLE"),
+  `Doubly Robust` = c("No", "Yes", "No", "No*", "Yes"),
+  `Uncertainty` = c("Bootstrap", "Analytic", "Bootstrap", "Bayesian", "Influence curve"),
+  `Heterogeneity` = c("Limited", "Limited", "No", "Native", "Limited"),
+  `Computation` = c("Fast", "Moderate", "Moderate", "Slow", "Moderate"),
+  check.names = FALSE
+)
+
+if (requireNamespace("kableExtra", quietly = TRUE)) {
+  kableExtra::kbl(method_table, booktabs = TRUE,
+                  caption = "Summary of method properties") |>
+    kableExtra::kable_styling(latex_options = c("hold_position"))
+} else {
+  knitr::kable(method_table, caption = "Summary of method properties")
+}
+```
+
+*Note: BCF incorporates propensity score but is not doubly robust in the classical sense.*
