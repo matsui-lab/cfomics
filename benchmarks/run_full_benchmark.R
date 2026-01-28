@@ -42,6 +42,32 @@ source(file.path(script_dir, "R", "runner.R"))
 
 # Parse command-line arguments
 args <- commandArgs(trailingOnly = TRUE)
+
+# Handle --help flag
+if ("--help" %in% args) {
+  cat("Usage: Rscript run_full_benchmark.R [options]\n")
+  cat("\n")
+  cat("Options:\n")
+  cat("  --smoke   Run quick smoke test (3 scenarios, 2 reps)\n")
+  cat("  --retry   Retry previously failed jobs\n")
+  cat("  --help    Show this help message and exit\n")
+  cat("\n")
+  cat("Examples:\n")
+  cat("  Rscript benchmarks/run_full_benchmark.R           # Full production run\n")
+  cat("  Rscript benchmarks/run_full_benchmark.R --smoke   # Quick smoke test\n")
+  cat("  Rscript benchmarks/run_full_benchmark.R --retry   # Retry failed jobs\n")
+  cat("  Rscript benchmarks/run_full_benchmark.R --smoke --retry\n")
+  quit(status = 0, save = "no")
+}
+
+# Validate arguments - warn on unknown flags
+known_args <- c("--smoke", "--retry", "--help")
+unknown <- setdiff(args, known_args)
+if (length(unknown) > 0) {
+  warning("Unknown arguments ignored: ", paste(unknown, collapse = ", "),
+          "\nUse --help for usage information.")
+}
+
 smoke <- "--smoke" %in% args
 retry <- "--retry" %in% args
 
@@ -97,3 +123,8 @@ if (results$executed > 0) {
 
 message("")
 message(sprintf("Results saved to: %s", file.path(cfg$results_dir, "raw")))
+
+# Exit with non-zero status if any jobs failed
+if (results$executed > 0 && n_err > 0) {
+  quit(status = 1, save = "no")
+}

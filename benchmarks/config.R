@@ -49,8 +49,8 @@ benchmark_config <- function() {
     # Formula: how many covariates to include
     formula_k = 10L,
 
-    # Output directory
-    results_dir = file.path("benchmarks", "results"),
+    # Output directory (normalized to absolute path)
+    results_dir = normalizePath(file.path("benchmarks", "results"), mustWork = FALSE),
 
     # Scenario definitions
     scenarios = list(
