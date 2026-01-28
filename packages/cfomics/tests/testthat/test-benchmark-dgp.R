@@ -162,9 +162,9 @@ test_that("cf_benchmark_generate_data meta contains correct values", {
 })
 
 test_that("cf_benchmark_generate_data all scenarios work", {
-  scenarios <- c("linear_homogeneous", "nonlinear_outcome", 
+  scenarios <- c("linear_homogeneous", "nonlinear_outcome",
                  "heterogeneous_ite", "strong_confounding")
-  
+
   for (scenario in scenarios) {
     result <- cfomics:::cf_benchmark_generate_data(
       scenario = scenario,
@@ -172,9 +172,137 @@ test_that("cf_benchmark_generate_data all scenarios work", {
       p = 5L,
       seed = 1L
     )
-    
+
     expect_equal(nrow(result$data), 50)
     expect_true(is.numeric(result$truth$ate_true))
     expect_length(result$truth$ite_true, 50)
   }
+})
+
+# ============================================================================
+# Tests for standalone DGP functions
+# ============================================================================
+
+test_that("dgp_baseline generates valid data", {
+  dgp <- dgp_baseline(n = 100, p = 50, seed = 123)
+
+  expect_type(dgp, "list")
+  expect_equal(nrow(dgp$X), 100)
+  expect_equal(ncol(dgp$X), 50)
+  expect_equal(length(dgp$T), 100)
+  expect_equal(length(dgp$Y), 100)
+  expect_true("true_ate" %in% names(dgp))
+  expect_true("true_ite" %in% names(dgp))
+  expect_true("propensity_score" %in% names(dgp))
+  expect_equal(dgp$dgp_name, "baseline")
+})
+
+test_that("dgp_dimension_sweep generates valid high-dim data", {
+  dgp <- dgp_dimension_sweep(n = 100, p = 500, seed = 123)
+
+  expect_equal(nrow(dgp$X), 100)
+  expect_equal(ncol(dgp$X), 500)
+  expect_true(dgp$dgp_params$n_p_ratio < 1)
+  expect_equal(dgp$dgp_name, "dimension_sweep")
+})
+
+test_that("dgp_heterogeneous_linear generates valid HTE data", {
+  dgp <- dgp_heterogeneous_linear(n = 100, p = 50, strength = 1.0, seed = 123)
+
+  expect_equal(length(unique(dgp$true_ite)), 100)  # ITE varies
+  expect_true(sd(dgp$true_ite) > 0)
+  expect_equal(dgp$dgp_name, "heterogeneous_linear")
+})
+
+test_that("dgp_heterogeneous_nonlinear generates valid data", {
+  dgp <- dgp_heterogeneous_nonlinear(n = 100, p = 50, seed = 123)
+
+  expect_true(sd(dgp$true_ite) > 0)
+  expect_equal(dgp$dgp_name, "heterogeneous_nonlinear")
+})
+
+test_that("dgp_heterogeneous_subgroup generates subgroup data", {
+  dgp <- dgp_heterogeneous_subgroup(n = 300, p = 50, seed = 123)
+
+  expect_true("subgroup" %in% names(dgp))
+  expect_equal(length(dgp$subgroup), 300)
+  expect_equal(dgp$dgp_name, "heterogeneous_subgroup")
+})
+
+test_that("dgp_heterogeneous_qualitative generates qualitative interaction data", {
+  dgp <- dgp_heterogeneous_qualitative(n = 200, p = 50, seed = 123)
+
+  expect_true("prop_harmed" %in% names(dgp))
+  expect_true("prop_benefited" %in% names(dgp))
+  expect_true(dgp$prop_harmed > 0)  # Some should be harmed
+  expect_true(dgp$prop_benefited > 0)  # Some should benefit
+  expect_equal(dgp$dgp_name, "heterogeneous_qualitative")
+})
+
+test_that("dgp_nonlinear_confounding generates valid data", {
+  types <- c("quadratic", "trigonometric", "interaction", "combined", "threshold")
+
+  for (type in types) {
+    dgp <- dgp_nonlinear_confounding(n = 100, p = 50, nonlinear_type = type, seed = 123)
+    expect_equal(length(dgp$Y), 100)
+    expect_equal(dgp$dgp_params$nonlinear_type, type)
+  }
+})
+
+test_that("dgp_dense_confounding generates valid data", {
+  dgp <- dgp_dense_confounding(n = 100, p = 200, n_confounders = 100, seed = 123)
+
+  expect_equal(length(dgp$Y), 100)
+  expect_true("confounding_info" %in% names(dgp))
+  expect_equal(dgp$confounding_info$n_confounders, 100)
+  expect_equal(dgp$dgp_name, "dense_confounding")
+})
+
+test_that("dgp_weak_overlap generates valid data with varying overlap", {
+  strengths <- c("good", "moderate", "weak", "extreme")
+
+  for (strength in strengths) {
+    dgp <- dgp_weak_overlap(n = 200, p = 50, overlap_strength = strength, seed = 123)
+    expect_equal(length(dgp$Y), 200)
+    expect_true("ps_summary" %in% names(dgp))
+    expect_equal(dgp$overlap_strength, strength)
+  }
+})
+
+test_that("dgp_covariate_shift generates valid data", {
+  dgp <- dgp_covariate_shift(n = 100, p = 50, shift_type = "mean", seed = 123)
+
+  expect_equal(length(dgp$Y), 100)
+  expect_equal(dgp$dgp_params$shift_type, "mean")
+  expect_equal(dgp$dgp_name, "covariate_shift")
+})
+
+test_that("dgp_correlated_confounding generates valid data", {
+  skip_if_not_installed("MASS")
+
+  types <- c("block", "ar1", "factor")
+
+  for (type in types) {
+    dgp <- dgp_correlated_confounding(n = 100, p = 50, correlation_type = type, seed = 123)
+    expect_equal(length(dgp$Y), 100)
+    expect_equal(dgp$dgp_params$correlation_type, type)
+  }
+})
+
+test_that("dgp_unobserved_confounding generates valid data with unobserved confounders", {
+  dgp <- dgp_unobserved_confounding(n = 100, p = 50, n_unobserved = 5, seed = 123)
+
+  expect_equal(length(dgp$Y), 100)
+  expect_true("X_unobserved" %in% names(dgp))
+  expect_equal(ncol(dgp$X_unobserved), 5)
+  expect_equal(dgp$dgp_name, "unobserved_confounding")
+})
+
+test_that("dgp_collider generates valid data with collider", {
+  dgp <- dgp_collider(n = 100, p = 50, seed = 123)
+
+  expect_equal(length(dgp$Y), 100)
+  expect_true("collider" %in% names(dgp))
+  expect_equal(length(dgp$collider), 100)
+  expect_equal(dgp$dgp_name, "collider")
 })
