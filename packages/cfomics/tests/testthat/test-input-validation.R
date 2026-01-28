@@ -267,5 +267,5 @@ test_that("cf_fit handles zero-variance covariate", {
 
 test_that("select_best_method returns valid method", {
   method <- select_best_method()
-  expect_true(method %in% c("grf", "hdml", "ipw", "gformula", "dowhy_gcm", "drlearner"))
+  expect_true(method %in% c("grf", "hdml", "hdps", "ipw", "gformula", "dowhy_gcm", "drlearner"))
 })
