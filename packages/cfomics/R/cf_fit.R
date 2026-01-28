@@ -300,6 +300,11 @@ select_best_method <- function(data = NULL) {
     return("grf")
   }
 
+  # HDML is good for high-dimensional data with glmnet
+  if (requireNamespace("glmnet", quietly = TRUE)) {
+    return("hdml")
+  }
+
   # Check Python availability
   py_available <- tryCatch({
     reticulate::py_available(initialize = FALSE)

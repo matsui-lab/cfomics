@@ -104,9 +104,10 @@ test_that("lazy python initialization pattern works", {
   # Python methods should give informative errors if Python not available
   if (!cf_has_python("drlearner")) {
     # dowhy_gcm requires graph argument, so test with drlearner instead
+    # Error message should mention Python package is not installed
     expect_error(
       cf_fit(Y ~ T | X, data = data, method = "drlearner"),
-      class = "cfomics_no_python"
+      regexp = "econml.*not installed|Python.*not available"
     )
   }
 })

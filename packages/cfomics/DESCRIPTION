@@ -50,6 +50,7 @@ Suggests:
     ggplot2,
     gridExtra,
     grf,
+    glmnet,
     ipw,
     survey,
     yaml,
