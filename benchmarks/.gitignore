@@ -1,0 +1,7 @@
+results/raw/
+results/summary/
+results/plots/
+results/tables/
+report/figures/
+report/tables/
+*.pdf
