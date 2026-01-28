@@ -51,6 +51,7 @@ Suggests:
     gridExtra,
     grf,
     glmnet,
+    bcf,
     ipw,
     survey,
     yaml,

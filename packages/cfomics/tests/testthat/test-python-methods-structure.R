@@ -223,7 +223,7 @@ test_that("cf_fit method auto-selection prefers R methods when Python unavailabl
   expect_s3_class(fit, "cf_model")
 
   # Method should be one of the valid methods
-  valid_methods <- c("grf", "hdml", "hdps", "ipw", "gformula", "dowhy_gcm", "drlearner", "ganite", "cavae")
+  valid_methods <- c("grf", "hdml", "hdps", "bcf", "ipw", "gformula", "dowhy_gcm", "drlearner", "ganite", "cavae")
   expect_true(fit$method %in% valid_methods)
 })
 

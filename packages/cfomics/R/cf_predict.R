@@ -63,6 +63,7 @@ predict.cf_model <- function(object,
     "gformula"  = predict_cf_gformula(object, type = type, ...),
     "hdml"      = predict_cf_hdml(object, type = type, ...),
     "hdps"      = predict_cf_hdps(object, type = type, ...),
+    "bcf"       = predict_cf_bcf(object, type = type, ...),
     stop(sprintf("Unknown method: %s", object$method))
   )
 }
