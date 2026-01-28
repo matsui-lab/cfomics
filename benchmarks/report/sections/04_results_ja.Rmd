@@ -1,0 +1,248 @@
+# 結果
+
+本章では、すべてのシミュレーションシナリオにわたって5つの因果推論手法を比較したベンチマーク結果を提示する。
+
+```{r results-check, echo=FALSE}
+if (!data_available) {
+  cat("\n**注記：** ベンチマーク結果はまだ利用できません。このセクションは、完全なベンチマークスイートを実行した後に記入されます。\n\n")
+  cat("結果を生成するには、以下を実行してください：\n")
+  cat("```r\n")
+  cat("source('benchmarks/run_full_benchmark.R')\n")
+  cat("```\n\n")
+}
+```
+
+## 全体的な性能要約
+
+```{r overall-summary, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  # Compute overall metrics by method
+  overall <- aggregate(
+    cbind(rmse_ate, mean_bias, coverage) ~ method,
+    data = agg_df,
+    FUN = function(x) mean(x, na.rm = TRUE)
+  )
+  overall <- overall[order(overall$rmse_ate), ]
+
+  if (requireNamespace("kableExtra", quietly = TRUE)) {
+    kableExtra::kbl(overall, booktabs = TRUE, digits = 3,
+                    caption = "全体的な性能要約（全シナリオの平均）",
+                    col.names = c("手法", "RMSE", "平均バイアス", "被覆率")) |>
+      kableExtra::kable_styling(latex_options = c("hold_position"))
+  } else {
+    knitr::kable(overall, digits = 3,
+                 caption = "全体的な性能要約（全シナリオの平均）")
+  }
+}
+```
+
+## 手法性能ヒートマップ
+
+以下のヒートマップは、手法とシナリオ別のRMSEを表示する。青はより良い（低い）RMSEを示し、赤はより悪い（高い）RMSEを示す。
+
+```{r rmse-heatmap, eval=data_available, fig.cap="手法とシナリオ別のRMSEヒートマップ", fig.height=8}
+if (data_available && nrow(agg_df) > 0) {
+  plot_method_heatmap(agg_df, "rmse_ate",
+                      lower_is_better = TRUE,
+                      title = "手法とシナリオ別のRMSE")
+}
+```
+
+## バイアスの分布
+
+```{r bias-boxplot, eval=data_available, fig.cap="手法別の反復間バイアス分布"}
+if (data_available && !is.null(raw_df) && nrow(raw_df) > 0 && "bias_ate" %in% names(raw_df)) {
+  plot_bias_boxplot(raw_df, bias_col = "bias_ate",
+                    title = "手法別バイアス分布（全シナリオ）")
+}
+```
+
+破線の赤い線はゼロバイアスを示す。この線を中心とした分布を持つ手法は、低い系統的バイアスを示す。
+
+## 被覆率分析
+
+被覆率は、真の処置効果を含む95%信頼区間の割合を示す。名目被覆率は95%である（ヒートマップの青い中間点で示される）。
+
+```{r coverage-heatmap, eval=data_available, fig.cap="被覆率ヒートマップ（95%名目）", fig.height=8}
+if (data_available && nrow(agg_df) > 0 && "coverage" %in% names(agg_df)) {
+  plot_coverage_heatmap(agg_df, coverage_col = "coverage",
+                        nominal = 0.95,
+                        title = "手法とシナリオ別の95%信頼区間被覆率")
+}
+```
+
+過少被覆（赤）は信頼区間が狭すぎることを示唆し、過大被覆（緑）は区間が保守的であることを示唆する。
+
+## バイアス・分散分解
+
+二乗平均誤差はバイアスの二乗成分と分散成分に分解できる。この分解により、誤差が主に系統的（バイアス）なのかランダム（分散）なのかが明らかになる。
+
+```{r bias-variance, eval=data_available, fig.cap="手法別バイアス・分散分解"}
+if (data_available && nrow(agg_df) > 0 && all(c("mean_bias", "sd_bias") %in% names(agg_df))) {
+  plot_bias_variance(agg_df, bias_col = "mean_bias", var_col = "sd_bias",
+                     is_sd = TRUE,
+                     title = "バイアス・分散分解")
+}
+```
+
+## 統計的比較
+
+Friedman検定を使用して手法間に有意差が存在するかを評価し、続いてNemenyi事後比較を行う。
+
+```{r friedman-test, eval=data_available}
+if (data_available && !is.null(friedman_result)) {
+  cat(sprintf("**Friedman検定の結果：**\n\n"))
+  cat(sprintf("- カイ二乗統計量：%.3f\n", friedman_result$statistic))
+  cat(sprintf("- 自由度：%d\n", friedman_result$df))
+  cat(sprintf("- P値：%.6f\n", friedman_result$p_value))
+
+  if (friedman_result$p_value < 0.05) {
+    cat("\n**結論：** 手法間に有意差が存在する（p < 0.05）。\n")
+  } else {
+    cat("\n**結論：** 手法間に有意差なし（p >= 0.05）。\n")
+  }
+}
+```
+
+### Critical Differenceダイアグラム
+
+Critical Difference（CD）ダイアグラムはNemenyi事後検定の結果を可視化する。水平バーで接続された手法は互いに有意に異ならない。
+
+```{r cd-diagram, eval=data_available, fig.cap="手法比較のためのCritical Differenceダイアグラム"}
+if (data_available && !is.null(friedman_result) && !is.null(nemenyi_result)) {
+  plot_cd_diagram(friedman_result, nemenyi_result,
+                  title = "Critical Differenceダイアグラム（RMSEランキング）")
+}
+```
+
+### 平均順位
+
+```{r mean-ranks, eval=data_available}
+if (data_available && !is.null(friedman_result)) {
+  ranks_sorted <- sort(friedman_result$mean_ranks)
+  ranks_df <- data.frame(
+    Rank = seq_along(ranks_sorted),
+    Method = names(ranks_sorted),
+    `Mean Rank` = round(ranks_sorted, 3),
+    check.names = FALSE
+  )
+  colnames(ranks_df) <- c("順位", "手法", "平均順位")
+
+  if (requireNamespace("kableExtra", quietly = TRUE)) {
+    kableExtra::kbl(ranks_df, booktabs = TRUE,
+                    caption = "シナリオ全体での平均順位（低いほど良い）") |>
+      kableExtra::kable_styling(latex_options = c("hold_position"))
+  } else {
+    knitr::kable(ranks_df, caption = "シナリオ全体での平均順位（低いほど良い）")
+  }
+}
+```
+
+## 計算時間
+
+```{r computation-time, eval=data_available, fig.cap="計算時間の比較（対数スケール）"}
+if (data_available && nrow(agg_df) > 0 && "mean_time" %in% names(agg_df)) {
+  plot_computation_time(agg_df, time_col = "mean_time",
+                        log_scale = TRUE,
+                        title = "手法別計算時間")
+}
+```
+
+## シナリオ別結果
+
+### S1: ベースライン性能
+
+```{r s1-results, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  s1_df <- agg_df[grepl("^S1_", agg_df$scenario_id), ]
+  if (nrow(s1_df) > 0) {
+    s1_summary <- aggregate(
+      cbind(rmse_ate, mean_bias, coverage) ~ method,
+      data = s1_df,
+      FUN = function(x) mean(x, na.rm = TRUE)
+    )
+    s1_summary <- s1_summary[order(s1_summary$rmse_ate), ]
+
+    if (requireNamespace("kableExtra", quietly = TRUE)) {
+      kableExtra::kbl(s1_summary, booktabs = TRUE, digits = 3,
+                      caption = "ベースラインシナリオ（S1）の性能",
+                      col.names = c("手法", "RMSE", "平均バイアス", "被覆率")) |>
+        kableExtra::kable_styling(latex_options = c("hold_position"))
+    } else {
+      knitr::kable(s1_summary, digits = 3, caption = "ベースラインシナリオ（S1）の性能")
+    }
+  }
+}
+```
+
+### S7: 弱いオーバーラップの分析
+
+このシナリオは陽性仮定の違反に対する手法の頑健性をテストする。傾向スコアに大きく依存する手法は、オーバーラップが弱まるにつれて性能が劣化するはずである。
+
+```{r s7-results, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  s7_df <- agg_df[grepl("^S7_", agg_df$scenario_id), ]
+  if (nrow(s7_df) > 0) {
+    # Order by overlap strength
+    overlap_order <- c("S7_good", "S7_moderate", "S7_weak", "S7_extreme")
+    s7_df$scenario_id <- factor(s7_df$scenario_id, levels = overlap_order)
+    s7_df <- s7_df[order(s7_df$scenario_id), ]
+
+    if (requireNamespace("kableExtra", quietly = TRUE)) {
+      kableExtra::kbl(s7_df[, c("scenario_id", "method", "rmse_ate", "coverage")],
+                      booktabs = TRUE, digits = 3,
+                      caption = "弱いオーバーラップシナリオ（S7）の結果",
+                      col.names = c("シナリオID", "手法", "RMSE", "被覆率")) |>
+        kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"))
+    } else {
+      knitr::kable(s7_df[, c("scenario_id", "method", "rmse_ate", "coverage")],
+                   digits = 3, caption = "弱いオーバーラップシナリオ（S7）の結果")
+    }
+  }
+}
+```
+
+### S10: 観測されない交絡に対する感度
+
+このシナリオは無交絡性の基本仮定をテストする。観測されない交絡の強度が増加するにつれて、すべての手法はバイアスの増加を示すはずである。
+
+```{r s10-results, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  s10_df <- agg_df[grepl("^S10_", agg_df$scenario_id), ]
+  if (nrow(s10_df) > 0) {
+    # Order by confounding strength
+    strength_order <- c("S10_str0", "S10_str0.5", "S10_str1", "S10_str2")
+    s10_df$scenario_id <- factor(s10_df$scenario_id, levels = strength_order)
+    s10_df <- s10_df[order(s10_df$scenario_id, s10_df$method), ]
+
+    if (requireNamespace("kableExtra", quietly = TRUE)) {
+      kableExtra::kbl(s10_df[, c("scenario_id", "method", "rmse_ate", "mean_bias")],
+                      booktabs = TRUE, digits = 3,
+                      caption = "観測されない交絡シナリオ（S10）の結果",
+                      col.names = c("シナリオID", "手法", "RMSE", "平均バイアス")) |>
+        kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"))
+    } else {
+      knitr::kable(s10_df[, c("scenario_id", "method", "rmse_ate", "mean_bias")],
+                   digits = 3, caption = "観測されない交絡シナリオ（S10）の結果")
+    }
+  }
+}
+```
+
+## 総合結果図
+
+```{r combined-figure, eval=data_available, fig.cap="ベンチマーク結果の包括的要約", fig.width=12, fig.height=10}
+if (data_available && nrow(agg_df) > 0) {
+  tryCatch({
+    create_benchmark_report_figure(
+      agg_df = agg_df,
+      raw_df = raw_df,
+      friedman_result = friedman_result,
+      nemenyi_result = nemenyi_result,
+      title = "cfomics ベンチマーク結果要約"
+    )
+  }, error = function(e) {
+    cat("総合図を生成できませんでした：", conditionMessage(e), "\n")
+  })
+}
+```

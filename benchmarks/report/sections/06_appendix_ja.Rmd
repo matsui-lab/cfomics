@@ -1,0 +1,327 @@
+# 付録 {-}
+
+## A. 完全なシナリオパラメータ表 {-}
+
+```{r scenario-params, echo=FALSE}
+# Define all scenario parameters
+scenario_params <- data.frame(
+  ID = c(
+    # S1: Baseline
+    "S1_n500_p50", "S1_n500_p100", "S1_n1000_p50", "S1_n1000_p100",
+    "S1_n2000_p50", "S1_n2000_p100",
+    # S2: Dimension sweep
+    "S2_n500_p100", "S2_n500_p500", "S2_n500_p1000",
+    "S2_n1000_p100", "S2_n1000_p500", "S2_n1000_p1000",
+    # S3: Heterogeneous linear
+    "S3_str0", "S3_str0.5", "S3_str1", "S3_str2",
+    # S4: Complex heterogeneity
+    "S4a_nonlinear", "S4b_subgroup", "S4c_qualitative",
+    # S5: Nonlinear confounding
+    "S5_quadratic", "S5_trigonometric", "S5_interaction", "S5_combined", "S5_threshold",
+    # S6: Dense confounding
+    "S6_conf10", "S6_conf50", "S6_conf100", "S6_conf200",
+    # S7: Weak overlap
+    "S7_good", "S7_moderate", "S7_weak", "S7_extreme",
+    # S8: Covariate shift
+    "S8_mean", "S8_variance",
+    # S9: Correlated confounding
+    "S9_block", "S9_ar1", "S9_factor",
+    # S10: Unobserved confounding
+    "S10_str0", "S10_str0.5", "S10_str1", "S10_str2",
+    # S11: Collider
+    "S11_str0", "S11_str0.5", "S11_str1", "S11_str2"
+  ),
+  DGP = c(
+    rep("dgp_baseline", 6),
+    rep("dgp_dimension_sweep", 6),
+    rep("dgp_heterogeneous_linear", 4),
+    "dgp_heterogeneous_nonlinear", "dgp_heterogeneous_subgroup", "dgp_heterogeneous_qualitative",
+    rep("dgp_nonlinear_confounding", 5),
+    rep("dgp_dense_confounding", 4),
+    rep("dgp_weak_overlap", 4),
+    rep("dgp_covariate_shift", 2),
+    rep("dgp_correlated_confounding", 3),
+    rep("dgp_unobserved_confounding", 4),
+    rep("dgp_collider", 4)
+  ),
+  n = c(
+    500, 500, 1000, 1000, 2000, 2000,
+    500, 500, 500, 1000, 1000, 1000,
+    rep(1000, 4),
+    rep(1000, 3),
+    rep(1000, 5),
+    rep(1000, 4),
+    rep(1000, 4),
+    rep(1000, 2),
+    rep(1000, 3),
+    rep(1000, 4),
+    rep(1000, 4)
+  ),
+  p = c(
+    50, 100, 50, 100, 50, 100,
+    100, 500, 1000, 100, 500, 1000,
+    rep(100, 4),
+    rep(100, 3),
+    rep(100, 5),
+    rep(500, 4),
+    rep(100, 4),
+    rep(100, 2),
+    rep(100, 3),
+    rep(100, 4),
+    rep(100, 4)
+  ),
+  Key_Parameter = c(
+    rep("-", 6),
+    rep("-", 6),
+    "strength=0", "strength=0.5", "strength=1", "strength=2",
+    "-", "-", "-",
+    "type=quadratic", "type=trigonometric", "type=interaction", "type=combined", "type=threshold",
+    "n_conf=10", "n_conf=50", "n_conf=100", "n_conf=200",
+    "overlap=good", "overlap=moderate", "overlap=weak", "overlap=extreme",
+    "shift=mean", "shift=variance",
+    "corr=block", "corr=ar1", "corr=factor",
+    "strength=0", "strength=0.5", "strength=1", "strength=2",
+    "strength=0", "strength=0.5", "strength=1", "strength=2"
+  ),
+  stringsAsFactors = FALSE
+)
+
+if (requireNamespace("kableExtra", quietly = TRUE)) {
+  kableExtra::kbl(scenario_params, booktabs = TRUE, longtable = TRUE,
+                  caption = "完全なシナリオパラメータ仕様",
+                  col.names = c("シナリオID", "DGP関数", "n", "p", "主要パラメータ")) |>
+    kableExtra::kable_styling(latex_options = c("hold_position", "repeat_header"),
+                              font_size = 9) |>
+    kableExtra::pack_rows("S1: ベースライン", 1, 6) |>
+    kableExtra::pack_rows("S2: 次元スイープ", 7, 12) |>
+    kableExtra::pack_rows("S3: 線形異質性", 13, 16) |>
+    kableExtra::pack_rows("S4: 複雑な異質性", 17, 19) |>
+    kableExtra::pack_rows("S5: 非線形交絡", 20, 24) |>
+    kableExtra::pack_rows("S6: 高密度交絡", 25, 28) |>
+    kableExtra::pack_rows("S7: 弱いオーバーラップ", 29, 32) |>
+    kableExtra::pack_rows("S8: 共変量シフト", 33, 34) |>
+    kableExtra::pack_rows("S9: 相関のある交絡", 35, 37) |>
+    kableExtra::pack_rows("S10: 観測されない交絡", 38, 41) |>
+    kableExtra::pack_rows("S11: 合流点バイアス", 42, 45)
+} else {
+  knitr::kable(scenario_params, caption = "完全なシナリオパラメータ仕様")
+}
+```
+
+## B. 完全な結果表 {-}
+
+```{r full-results-table, echo=FALSE, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  # Select key columns for display
+  display_cols <- intersect(
+    c("scenario_id", "method", "rmse_ate", "mean_bias", "sd_bias", "coverage", "mean_time"),
+    names(agg_df)
+  )
+
+  results_display <- agg_df[, display_cols]
+  results_display <- results_display[order(results_display$scenario_id, results_display$method), ]
+
+  if (requireNamespace("kableExtra", quietly = TRUE)) {
+    kableExtra::kbl(results_display, booktabs = TRUE, longtable = TRUE, digits = 3,
+                    caption = "シナリオおよび手法別の集計結果",
+                    row.names = FALSE,
+                    col.names = c("シナリオID", "手法", "RMSE", "平均バイアス", "バイアスSD", "被覆率", "平均時間")) |>
+      kableExtra::kable_styling(latex_options = c("hold_position", "repeat_header"),
+                                font_size = 8) |>
+      kableExtra::column_spec(1, width = "2cm") |>
+      kableExtra::column_spec(2, width = "1.5cm")
+  } else {
+    knitr::kable(results_display, digits = 3,
+                 caption = "シナリオおよび手法別の集計結果")
+  }
+}
+```
+
+## C. 手法実装の詳細 {-}
+
+### G-formula (gformula)
+
+```yaml
+実装: cfomics内部
+バックエンド: 正則化回帰用glmnet
+正則化: Elastic Net (alpha = 0.5, lambdaは交差検証)
+交差検証フォールド数: 10
+```
+
+### HDML (hdml)
+
+```yaml
+実装: cfomics内部（econmlバックエンド）
+バックエンド: Python EconMLライブラリ
+ベース学習器: Random Forest, Gradient Boosting, Elastic Net
+クロスフィッティングフォールド数: 5
+```
+
+### HDPS (hdps)
+
+```yaml
+実装: cfomics内部
+アルゴリズム: Schneeweiss et al. (2009)
+共変量選択: Brossバイアス公式による上位k
+デフォルトk: 500共変量
+```
+
+### BCF (bcf)
+
+```yaml
+実装: bcf Rパッケージ
+MCMCバーンイン: 1000回
+MCMCサンプル: 2000回
+木の数（予後）: 200
+木の数（処置）: 50
+```
+
+### TMLE (tmle)
+
+```yaml
+実装: tmle Rパッケージ
+Super Learnerライブラリ: SL.glm, SL.glmnet, SL.ranger, SL.xgboost
+交差検証: 10-fold
+傾向スコア切断: [0.01, 0.99]
+```
+
+## D. 計算環境 {-}
+
+```{r session-info, echo=FALSE}
+cat("**Rセッション情報**\n\n")
+cat(sprintf("Rバージョン: %s\n", R.version.string))
+cat(sprintf("プラットフォーム: %s\n", R.version$platform))
+cat(sprintf("実行環境: %s\n", sessionInfo()$running))
+cat(sprintf("レポート生成日時: %s\n", format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")))
+cat("\n")
+```
+
+### パッケージバージョン {-}
+
+```{r package-versions, echo=FALSE}
+# Core packages used in benchmark
+core_packages <- c(
+  "cfomics", "ggplot2", "knitr", "kableExtra", "patchwork",
+  "glmnet", "grf", "bcf", "tmle", "SuperLearner",
+  "reticulate"
+)
+
+# Check which packages are installed
+installed_pkgs <- installed.packages()[, "Package"]
+available_pkgs <- intersect(core_packages, installed_pkgs)
+
+if (length(available_pkgs) > 0) {
+  pkg_versions <- sapply(available_pkgs, function(pkg) {
+    tryCatch(
+      as.character(packageVersion(pkg)),
+      error = function(e) "未インストール"
+    )
+  })
+
+  pkg_df <- data.frame(
+    Package = names(pkg_versions),
+    Version = pkg_versions,
+    row.names = NULL,
+    stringsAsFactors = FALSE
+  )
+  colnames(pkg_df) <- c("パッケージ", "バージョン")
+
+  if (requireNamespace("kableExtra", quietly = TRUE)) {
+    kableExtra::kbl(pkg_df, booktabs = TRUE,
+                    caption = "パッケージバージョン") |>
+      kableExtra::kable_styling(latex_options = c("hold_position"))
+  } else {
+    knitr::kable(pkg_df, caption = "パッケージバージョン")
+  }
+} else {
+  cat("パッケージバージョン情報は利用できません。\n")
+}
+```
+
+## E. ベンチマークの再現 {-}
+
+ベンチマーク結果を再現するには：
+
+```r
+# 1. cfomicsと依存関係をインストール
+# devtools::install_github("ymatts/cfomics")
+
+# 2. Python環境をセットアップ（HDML、Pythonバックエンド付きTMLE用）
+# cfomics::cf_install_python_env("unified")
+# cfomics::cf_use_python_env("unified")
+
+# 3. 完全なベンチマークを実行（警告：数時間かかる場合があります）
+setwd("path/to/cfomics")
+source("benchmarks/run_full_benchmark.R")
+
+# 4. レポートを生成
+rmarkdown::render(
+ "benchmarks/report/benchmark_report.Rmd",
+  params = list(
+    lang = "ja",
+    results_dir = "benchmarks/results"
+  ),
+  output_file = "benchmark_report_ja.pdf"
+)
+```
+
+### クイックテスト実行 {-}
+
+反復回数を減らしたクイックテスト：
+
+```r
+# スモークテスト設定を読み込み
+source("benchmarks/config.R")
+cfg <- benchmark_config_smoke()  # 3シナリオ、2反復
+
+# 設定を減らして実行
+source("benchmarks/run_full_benchmark.R")
+run_benchmark(config = cfg)
+```
+
+## F. 統計的検定の仮定 {-}
+
+### Friedman検定
+
+本レポートで使用されるFriedman検定は以下を仮定する：
+
+1. **ブロックデザイン**：各シナリオがブロックを表し、手法がブロック内で比較される
+2. **独立性**：シナリオは独立（異なる乱数シード）
+3. **順序応答**：RMSEは各シナリオ内で意味のある順位付けが可能
+
+### Nemenyi事後検定
+
+Nemenyi検定は、ファミリーワイズエラー率を制御しながらペアワイズ比較を提供する。2つの手法は、その平均順位差がCritical Difference（CD）を超える場合に有意に異なる：
+
+$$CD = q_\alpha \sqrt{\frac{k(k+1)}{6N}}$$
+
+ここで $k$ は手法数、$N$ はシナリオ数、$q_\alpha$ はStudentized range臨界値である。
+
+## G. データ利用可能性 {-}
+
+ベンチマーク結果は以下に保存される：
+
+```
+benchmarks/results/
+├── raw/                    # 個別反復結果
+│   ├── S1_n500_p50_*.rds
+│   └── ...
+├── summary/                # 集計結果
+│   ├── raw_results.csv     # 全反復、全シナリオ
+│   └── aggregated_summary.csv  # 要約統計
+└── logs/                   # 実行ログ
+```
+
+生データファイル（`.rds`）には完全なモデル適合が含まれており、本レポートで提示されたもの以外の追加分析に使用できる。
+
+## H. 参考文献 {-}
+
+1. Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W., & Robins, J. (2018). Double/debiased machine learning for treatment and structural parameters. *The Econometrics Journal*, 21(1), C1-C68.
+
+2. Hahn, P. R., Murray, J. S., & Carvalho, C. M. (2020). Bayesian regression tree models for causal inference: Regularization, confounding, and heterogeneous effects. *Bayesian Analysis*, 15(3), 965-1056.
+
+3. Schneeweiss, S., Rassen, J. A., Glynn, R. J., Avorn, J., Mogun, H., & Brookhart, M. A. (2009). High-dimensional propensity score adjustment in studies of treatment effects using health care claims data. *Epidemiology*, 20(4), 512-522.
+
+4. van der Laan, M. J., & Rose, S. (2011). *Targeted learning: Causal inference for observational and experimental data*. Springer.
+
+5. Demsar, J. (2006). Statistical comparisons of classifiers over multiple data sets. *Journal of Machine Learning Research*, 7, 1-30.
