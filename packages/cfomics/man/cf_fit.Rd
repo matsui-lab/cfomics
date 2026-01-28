@@ -7,8 +7,8 @@
 cf_fit(
   formula,
   data,
-  method = c("grf", "ipw", "gformula", "dowhy_gcm", "ganite", "drlearner", "cavae",
-    "auto"),
+  method = c("grf", "ipw", "gformula", "hdml", "hdps", "bcf", "tmle", "dowhy_gcm",
+    "ganite", "drlearner", "cavae", "auto"),
   graph = NULL,
   bootstrap = FALSE,
   n_bootstrap = 100L,
@@ -39,6 +39,10 @@ MultiAssayExperiment object.}
   \item{"grf"}{Generalized Random Forest (R-native, recommended for most cases)}
   \item{"ipw"}{Inverse Probability Weighting (R-native)}
   \item{"gformula"}{G-computation/parametric g-formula (R-native, no extra packages)}
+  \item{"hdml"}{High-Dimensional Machine Learning/Debiased Lasso (R-native, requires glmnet)}
+  \item{"hdps"}{High-Dimensional Propensity Score/IPW (R-native, requires glmnet)}
+  \item{"bcf"}{Bayesian Causal Forests (R-native, requires bcf)}
+  \item{"tmle"}{Targeted Maximum Likelihood Estimation (R-native, requires glmnet)}
   \item{"dowhy_gcm"}{DoWhy Graphical Causal Model (Python, requires DAG)}
   \item{"drlearner"}{Double/Debiased Machine Learning (Python)}
   \item{"ganite"}{GAN-based ITE estimation (Python/TensorFlow)}
