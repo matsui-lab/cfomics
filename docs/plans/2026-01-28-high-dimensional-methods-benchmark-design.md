@@ -131,11 +131,32 @@ packages/cfomics/R/
 | ID | 名称 | n | p | 交絡構造 | 目的 | 実応用例 |
 |----|------|---|---|---------|------|---------|
 | S1 | 基準 | 500 | 50 | 線形・疎・独立 | ベースライン | 臨床試験補助解析、少数バイオマーカー研究 |
-| S5 | 非線形 | 500 | 500 | 非線形交絡 | モデル柔軟性 | 複雑なパスウェイ相互作用、用量反応関係 |
-| S6 | 密交絡 | 500 | 500 | 線形・密・独立 | 多数の交絡 | 環境疫学、バッチ効果 |
-| S9 | 相関交絡 | 500 | 500 | ブロック相関構造 | 共発現パターン | 遺伝子共発現、パスウェイ内遺伝子群 |
-| S10 | 未観測交絡 | 500 | 500 | 一部が観測不能 | 感度分析評価 | バッチ効果、測定されない生活習慣 |
-| S11 | 合流点 | 500 | 500 | collider含む | 不適切な調整の検出 | 選択バイアス、生存者バイアス |
+#### S5: 非線形交絡（サブシナリオ）
+
+| ID | 非線形タイプ | 説明 | 目的 | 実応用例 |
+|----|-------------|------|------|---------|
+| S5a | 二乗項のみ | Y, T ∝ X² | 単純な非線形 | 用量反応の二次効果 |
+| S5b | 三角関数 | Y, T ∝ sin(πX) | 周期的パターン | 周期的生物リズム |
+| S5c | 交互作用 | Y, T ∝ X₁·X₂ | 変数間相互作用 | パスウェイ相互作用 |
+| S5d | 複合非線形 | 上記の組み合わせ | 複雑なパターン | 現実的な生物学的関係 |
+| S5e | 閾値効果 | Y, T ∝ I(X > c) | ステップ関数的 | バイオマーカー閾値 |
+
+非線形強度スイープ: `nonlinearity_strength = c(0, 0.25, 0.5, 0.75, 1.0)`
+（0 = 完全線形, 1.0 = 完全非線形）
+
+#### S6: 密交絡（スイープ実験）
+
+| パラメータ | スイープ値 |
+|-----------|-----------|
+| 交絡変数数 | 10, 25, 50, 100, 200, 500 |
+| 係数スケーリング | fixed, sqrt, linear |
+
+係数スケーリング:
+- `fixed`: 係数固定（0.1）→ 交絡総効果が増加
+- `sqrt`: 係数 ∝ 1/√n_conf → 分散一定
+- `linear`: 係数 ∝ 1/n_conf → 効果一定
+
+実応用例: 環境疫学、バッチ効果、多数の生活習慣因子
 
 #### S2-S3: 次元数スイープ実験
 
@@ -174,17 +195,70 @@ packages/cfomics/R/
 | S7b | 構造的違反 | 一部領域でPS≈0 | 完全な違反への対処 | 禁忌条件、希少疾患 |
 | S7c | 非対称 | 片側のみ極端 | 群間不均衡の影響 | 処置群過多/過少 |
 
-#### S8: 共変量シフト
+#### S8: 共変量シフト（サブシナリオ）
 
-| パラメータ | 値 |
-|-----------|-----|
-| n | 500 |
-| p | 500 |
-| 平均シフト | 1.0（処置群で一部変数が+1.0） |
-| 分散比 | 1.5（処置群で分散が1.5倍） |
-| 相関シフト | 0.2（処置群で相関が+0.2） |
-| 目的 | 分布の不一致への対処 |
-| 実応用例 | 異なるコホート間比較、バッチ効果、前向きvs後ろ向き研究 |
+| ID | シフトタイプ | パラメータ | 目的 | 実応用例 |
+|----|-------------|-----------|------|---------|
+| S8a | 平均シフトのみ | mean_shift=0.5,1.0,2.0 | 位置のずれ | 異なる母集団 |
+| S8b | 分散シフトのみ | var_ratio=1.0,1.5,2.0,3.0 | スケールのずれ | 測定精度の違い |
+| S8c | 相関シフトのみ | cor_shift=0.1,0.2,0.3,0.4 | 構造のずれ | 技術的変動 |
+| S8d | 複合シフト | 上記の組み合わせ | 現実的状況 | コホート間比較 |
+
+シフト強度スイープ: `shift_magnitude = c("mild", "moderate", "severe")`
+
+実応用例: 異なるコホート間比較、バッチ効果、前向きvs後ろ向き研究
+
+#### S9: 相関交絡（サブシナリオ）
+
+| ID | 相関構造 | パラメータ | 目的 | 実応用例 |
+|----|---------|-----------|------|---------|
+| S9a | ブロック相関（弱） | within_cor=0.3 | 弱い共発現 | 遠縁遺伝子 |
+| S9b | ブロック相関（中） | within_cor=0.5 | 中程度共発現 | 同一パスウェイ |
+| S9c | ブロック相関（強） | within_cor=0.7 | 強い共発現 | 遺伝子クラスター |
+| S9d | AR(1)構造 | rho=0.3,0.5,0.7 | 順序依存 | ゲノム位置依存 |
+| S9e | 因子モデル | n_factors=5,10,20 | 潜在因子構造 | 転写因子調節 |
+
+相関強度スイープ: `within_cor = c(0.1, 0.3, 0.5, 0.7, 0.9)`
+
+実応用例: 遺伝子共発現、パスウェイ内遺伝子群、転写因子ネットワーク
+
+#### S10: 未観測交絡（サブシナリオ）
+
+| ID | 設定 | パラメータ | 目的 | 実応用例 |
+|----|------|-----------|------|---------|
+| S10a | 弱い未観測交絡 | strength=0.2 | 軽微なバイアス | 軽度のバッチ効果 |
+| S10b | 中程度 | strength=0.5 | 中程度バイアス | 一般的な未測定交絡 |
+| S10c | 強い未観測交絡 | strength=0.8 | 深刻なバイアス | 重大な欠落変数 |
+| S10d | 多数の未観測 | n_unobserved=1,5,10,20 | 未観測変数の数 | 複合的バイアス |
+| S10e | 観測割合 | obs_ratio=0.9,0.7,0.5 | 交絡の観測割合 | 部分的測定 |
+
+未観測強度スイープ: `strength = c(0.1, 0.2, 0.3, 0.5, 0.7, 1.0)`
+
+追加評価指標:
+- 実バイアス: 推定ATE - 真ATE
+- 理論バイアス比: 実バイアス / 理論予測バイアス
+- 感度パラメータ: どの程度の未観測交絡で推定が逆転するか
+
+実応用例: バッチ効果、測定されない生活習慣、技術的変動
+
+#### S11: 合流点（サブシナリオ）
+
+| ID | 設定 | パラメータ | 目的 | 実応用例 |
+|----|------|-----------|------|---------|
+| S11a | 弱いcollider | effect=0.2 | 軽微な選択バイアス | 軽度の選択 |
+| S11b | 中程度 | effect=0.5 | 中程度バイアス | 一般的な選択バイアス |
+| S11c | 強いcollider | effect=0.8 | 深刻なバイアス | 強い選択圧 |
+| S11d | collider数 | n_colliders=1,3,5,10 | 複数のcollider | 多段階選択 |
+| S11e | 混合構造 | 交絡+collider混在 | 変数選択の難しさ | 現実的状況 |
+
+collider強度スイープ: `effect = c(0.1, 0.2, 0.3, 0.5, 0.7, 1.0)`
+
+追加評価指標:
+- Collider調整バイアス: colliderを含めた場合 vs 除外した場合
+- 変数選択正確度: 交絡のみを正しく選択できたか
+- Oracle比較: 真の交絡のみで調整した場合との差
+
+実応用例: 選択バイアス、生存者バイアス、入院バイアス
 
 ### 3.2 DGP実装
 
@@ -388,25 +462,56 @@ dgp_heterogeneous_qualitative <- function(n = 500, p = 500, seed = NULL) {
 }
 ```
 
-#### S5: 非線形交絡
+#### S5: 非線形交絡（拡張版）
 
 ```r
-dgp_nonlinear_confounding <- function(n = 500, p = 500, seed = NULL) {
+# S5: 非線形交絡の統一DGP（タイプと強度を指定可能）
+dgp_nonlinear_confounding <- function(n = 500, p = 500,
+                                       nonlinear_type = "combined",
+                                       strength = 1.0,
+                                       seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(rnorm(n * p), n, p)
   colnames(X) <- paste0("X", 1:p)
 
-  # 非線形な傾向スコアモデル
-  ps_linear <- 0.3 * X[,1] + 0.3 * X[,2]
-  ps_nonlinear <- 0.5 * X[,1]^2 + 0.3 * sin(pi * X[,3]) + 0.2 * X[,1] * X[,2]
-  ps <- plogis(ps_linear + ps_nonlinear)
+  # 線形成分（常に含む）
+  linear_t <- 0.3 * X[,1] + 0.3 * X[,2]
+  linear_y <- 0.2 * X[,1] + 0.2 * X[,2]
+
+  # 非線形成分（タイプにより異なる）
+  nonlinear_t <- nonlinear_y <- 0
+
+  if (nonlinear_type == "quadratic" || nonlinear_type == "combined") {
+    # S5a: 二乗項
+    nonlinear_t <- nonlinear_t + 0.5 * X[,1]^2
+    nonlinear_y <- nonlinear_y + 0.3 * X[,1]^2
+  }
+
+  if (nonlinear_type == "trigonometric" || nonlinear_type == "combined") {
+    # S5b: 三角関数
+    nonlinear_t <- nonlinear_t + 0.3 * sin(pi * X[,3])
+    nonlinear_y <- nonlinear_y + 0.2 * sin(pi * X[,2])
+  }
+
+  if (nonlinear_type == "interaction" || nonlinear_type == "combined") {
+    # S5c: 交互作用
+    nonlinear_t <- nonlinear_t + 0.2 * X[,1] * X[,2]
+    nonlinear_y <- nonlinear_y + 0.1 * X[,1] * X[,3]
+  }
+
+  if (nonlinear_type == "threshold") {
+    # S5e: 閾値効果
+    nonlinear_t <- nonlinear_t + 0.5 * as.numeric(X[,1] > 0)
+    nonlinear_y <- nonlinear_y + 0.3 * as.numeric(X[,2] > 0.5)
+  }
+
+  # 強度で非線形成分をスケーリング
+  ps <- plogis(linear_t + strength * nonlinear_t)
   T <- rbinom(n, 1, ps)
 
-  # 非線形な結果モデル
   tau <- 2.0
-  Y_baseline <- 0.3 * X[,1]^2 + 0.2 * sin(pi * X[,2]) + 0.1 * X[,1] * X[,3]
-  Y <- Y_baseline + tau * T + rnorm(n)
+  Y <- linear_y + strength * nonlinear_y + tau * T + rnorm(n)
 
   list(
     X = X, T = T, Y = Y,
@@ -414,24 +519,33 @@ dgp_nonlinear_confounding <- function(n = 500, p = 500, seed = NULL) {
     true_ite = rep(tau, n),
     propensity_score = ps,
     dgp_name = "nonlinear_confounding",
-    dgp_params = list(n = n, p = p)
+    dgp_params = list(n = n, p = p,
+                      nonlinear_type = nonlinear_type,
+                      strength = strength)
   )
 }
 ```
 
-#### S6: 密交絡
+#### S6: 密交絡（拡張版）
 
 ```r
 dgp_dense_confounding <- function(n = 500, p = 500,
                                    n_confounders = 100,
+                                   coef_scaling = "fixed",
                                    seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(rnorm(n * p), n, p)
   colnames(X) <- paste0("X", 1:p)
 
-  # 多数の交絡変数（係数は小さいが多い）
-  coef_size <- 0.1
+  # 係数スケーリング方式
+  base_coef <- 0.1
+  coef_size <- switch(coef_scaling,
+    "fixed"  = base_coef,                        # 固定: 総効果増加
+    "sqrt"   = base_coef / sqrt(n_confounders),  # √n: 分散一定
+    "linear" = base_coef * 10 / n_confounders    # n: 効果一定
+  )
+
   beta_t <- c(rep(coef_size, n_confounders), rep(0, p - n_confounders))
   beta_y <- c(rep(coef_size, n_confounders), rep(0, p - n_confounders))
 
@@ -441,14 +555,25 @@ dgp_dense_confounding <- function(n = 500, p = 500,
   tau <- 2.0
   Y <- X %*% beta_y + tau * T + rnorm(n)
 
+  # 診断情報
+  total_confounding_t <- sum(abs(beta_t))
+  total_confounding_y <- sum(abs(beta_y))
+
   list(
     X = X, T = T, Y = Y,
     true_ate = tau,
     true_ite = rep(tau, n),
     propensity_score = ps,
-    n_confounders = n_confounders,
+    confounding_info = list(
+      n_confounders = n_confounders,
+      coef_size = coef_size,
+      coef_scaling = coef_scaling,
+      total_confounding_t = total_confounding_t,
+      total_confounding_y = total_confounding_y
+    ),
     dgp_name = "dense_confounding",
-    dgp_params = list(n = n, p = p, n_confounders = n_confounders)
+    dgp_params = list(n = n, p = p, n_confounders = n_confounders,
+                      coef_scaling = coef_scaling)
   )
 }
 ```
@@ -638,13 +763,14 @@ dgp_covariate_shift <- function(n = 500, p = 500,
 }
 ```
 
-#### S9: 相関交絡
+#### S9: 相関交絡（拡張版）
 
 ```r
-dgp_correlated_confounding <- function(n = 500, p = 500,
-                                        n_blocks = 10,
-                                        within_cor = 0.7,
-                                        seed = NULL) {
+# S9a-c: ブロック相関構造
+dgp_correlated_confounding_block <- function(n = 500, p = 500,
+                                              n_blocks = 10,
+                                              within_cor = 0.7,
+                                              seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   # ブロック相関構造（遺伝子共発現を模倣）
@@ -677,25 +803,112 @@ dgp_correlated_confounding <- function(n = 500, p = 500,
     true_ate = tau,
     true_ite = rep(tau, n),
     propensity_score = ps,
-    block_structure = list(
+    correlation_structure = list(
+      type = "block",
       n_blocks = n_blocks,
       block_size = block_size,
       within_cor = within_cor
     ),
-    dgp_name = "correlated_confounding",
+    dgp_name = "correlated_confounding_block",
     dgp_params = list(n = n, p = p, n_blocks = n_blocks, within_cor = within_cor)
+  )
+}
+
+# S9d: AR(1)構造
+dgp_correlated_confounding_ar1 <- function(n = 500, p = 500,
+                                            rho = 0.5,
+                                            seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+
+  # AR(1)相関構造: Σ[i,j] = rho^|i-j|
+  Sigma <- rho^abs(outer(1:p, 1:p, "-"))
+
+  X <- MASS::mvrnorm(n, mu = rep(0, p), Sigma = Sigma)
+  colnames(X) <- paste0("X", 1:p)
+
+  # 等間隔で交絡変数を選択
+  conf_idx <- seq(1, p, length.out = 10)
+  beta_t <- beta_y <- rep(0, p)
+  beta_t[conf_idx] <- 0.5
+  beta_y[conf_idx] <- 0.3
+
+  ps <- plogis(X %*% beta_t)
+  T <- rbinom(n, 1, ps)
+
+  tau <- 2.0
+  Y <- X %*% beta_y + tau * T + rnorm(n)
+
+  list(
+    X = X, T = T, Y = Y,
+    true_ate = tau,
+    true_ite = rep(tau, n),
+    propensity_score = ps,
+    correlation_structure = list(
+      type = "ar1",
+      rho = rho
+    ),
+    dgp_name = "correlated_confounding_ar1",
+    dgp_params = list(n = n, p = p, rho = rho)
+  )
+}
+
+# S9e: 因子モデル
+dgp_correlated_confounding_factor <- function(n = 500, p = 500,
+                                               n_factors = 10,
+                                               seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+
+  # X = L·F + ε, where F is n_factors latent factors
+  L <- matrix(rnorm(p * n_factors, sd = 0.5), p, n_factors)
+  F <- matrix(rnorm(n * n_factors), n, n_factors)
+  noise <- matrix(rnorm(n * p, sd = 0.5), n, p)
+  X <- F %*% t(L) + noise
+  colnames(X) <- paste0("X", 1:p)
+
+  # 潜在因子が交絡（観測変数を通じて）
+  # 最初の5因子がTとYに影響
+  gamma_t <- c(rep(0.5, 5), rep(0, n_factors - 5))
+  gamma_y <- c(rep(0.3, 5), rep(0, n_factors - 5))
+
+  ps <- plogis(F %*% gamma_t)
+  T <- rbinom(n, 1, ps)
+
+  tau <- 2.0
+  Y <- F %*% gamma_y + tau * T + rnorm(n)
+
+  list(
+    X = X, T = T, Y = Y,
+    true_ate = tau,
+    true_ite = rep(tau, n),
+    propensity_score = ps,
+    correlation_structure = list(
+      type = "factor",
+      n_factors = n_factors,
+      n_confounding_factors = 5
+    ),
+    dgp_name = "correlated_confounding_factor",
+    dgp_params = list(n = n, p = p, n_factors = n_factors)
   )
 }
 ```
 
-#### S10: 未観測交絡
+#### S10: 未観測交絡（拡張版）
 
 ```r
 dgp_unobserved_confounding <- function(n = 500, p = 500,
                                         n_unobserved = 5,
                                         unobserved_strength = 0.5,
+                                        obs_ratio = NULL,
                                         seed = NULL) {
+
   if (!is.null(seed)) set.seed(seed)
+
+  # obs_ratioが指定された場合、n_unobservedを計算
+  n_total_conf <- 10  # 真の交絡変数の総数
+  if (!is.null(obs_ratio)) {
+    n_observed_conf <- round(n_total_conf * obs_ratio)
+    n_unobserved <- n_total_conf - n_observed_conf
+  }
 
   # 観測される共変量
   X_obs <- matrix(rnorm(n * p), n, p)
@@ -705,8 +918,9 @@ dgp_unobserved_confounding <- function(n = 500, p = 500,
   U <- matrix(rnorm(n * n_unobserved), n, n_unobserved)
 
   # 観測交絡の効果
-  beta_t_obs <- c(rep(0.3, 10), rep(0, p - 10))
-  beta_y_obs <- c(rep(0.2, 10), rep(0, p - 10))
+  n_observed_conf <- n_total_conf - n_unobserved
+  beta_t_obs <- c(rep(0.3, n_observed_conf), rep(0, p - n_observed_conf))
+  beta_y_obs <- c(rep(0.2, n_observed_conf), rep(0, p - n_observed_conf))
 
   # 処置と結果の両方に未観測交絡が影響
   ps <- plogis(X_obs %*% beta_t_obs +
@@ -719,6 +933,7 @@ dgp_unobserved_confounding <- function(n = 500, p = 500,
        tau * T + rnorm(n)
 
   # バイアスの理論値（近似）
+  # OVB ≈ γ_t * γ_y * var(U) / var(T) の合計
   theoretical_bias <- unobserved_strength^2 * n_unobserved
 
   list(
@@ -728,6 +943,8 @@ dgp_unobserved_confounding <- function(n = 500, p = 500,
     propensity_score = ps,
     unobserved_info = list(
       n_unobserved = n_unobserved,
+      n_observed_conf = n_observed_conf,
+      obs_ratio = n_observed_conf / n_total_conf,
       unobserved_strength = unobserved_strength,
       theoretical_bias = theoretical_bias
     ),
@@ -738,18 +955,22 @@ dgp_unobserved_confounding <- function(n = 500, p = 500,
 }
 ```
 
-#### S11: 合流点（collider）
+#### S11: 合流点（拡張版）
 
 ```r
-dgp_collider <- function(n = 500, p = 500, seed = NULL) {
+dgp_collider <- function(n = 500, p = 500,
+                          n_confounders = 5,
+                          n_colliders = 3,
+                          collider_strength = 0.5,
+                          seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(rnorm(n * p), n, p)
   colnames(X) <- paste0("X", 1:p)
 
-  # 真の交絡: X1-X5
-  beta_t_conf <- c(rep(0.3, 5), rep(0, p - 5))
-  beta_y_conf <- c(rep(0.2, 5), rep(0, p - 5))
+  # 真の交絡: X[1:n_confounders]
+  beta_t_conf <- c(rep(0.3, n_confounders), rep(0, p - n_confounders))
+  beta_y_conf <- c(rep(0.2, n_confounders), rep(0, p - n_confounders))
 
   ps <- plogis(X %*% beta_t_conf)
   T <- rbinom(n, 1, ps)
@@ -757,11 +978,27 @@ dgp_collider <- function(n = 500, p = 500, seed = NULL) {
   tau <- 2.0
   Y <- X %*% beta_y_conf + tau * T + rnorm(n)
 
-  # 合流点: X6-X10はTとYの共通の結果（調整すべきでない）
-  # X6 = f(T, Y) + noise
-  X[, 6] <- 0.5 * T + 0.3 * Y + rnorm(n, sd = 0.5)
-  X[, 7] <- 0.4 * T + 0.4 * Y + rnorm(n, sd = 0.5)
-  X[, 8] <- 0.3 * T + 0.5 * Y + rnorm(n, sd = 0.5)
+  # 合流点の生成（TとYの共通結果）
+  collider_start <- n_confounders + 1
+  collider_end <- n_confounders + n_colliders
+  for (j in 1:n_colliders) {
+    col_idx <- n_confounders + j
+    # 各colliderはTとYの両方から影響を受ける
+    X[, col_idx] <- collider_strength * T +
+                    collider_strength * Y +
+                    rnorm(n, sd = 0.5)
+  }
+
+  # 変数の役割を記録
+  variable_roles <- list(
+    confounders = 1:n_confounders,
+    colliders = collider_start:collider_end,
+    neutral = (collider_end + 1):p
+  )
+
+  # collider調整時のバイアス推定（理論値）
+  # colliderを調整すると、TとYの間に擬似的な関連が生じる
+  collider_bias_if_adjusted <- collider_strength^2 * n_colliders
 
   list(
     X = X, T = T, Y = Y,
@@ -769,12 +1006,74 @@ dgp_collider <- function(n = 500, p = 500, seed = NULL) {
     true_ite = rep(tau, n),
     propensity_score = ps,
     collider_info = list(
-      confounder_idx = 1:5,
-      collider_idx = 6:8,
-      neutral_idx = 9:p
+      n_confounders = n_confounders,
+      n_colliders = n_colliders,
+      collider_strength = collider_strength,
+      variable_roles = variable_roles,
+      collider_bias_if_adjusted = collider_bias_if_adjusted
     ),
     dgp_name = "collider",
-    dgp_params = list(n = n, p = p)
+    dgp_params = list(n = n, p = p, n_confounders = n_confounders,
+                      n_colliders = n_colliders,
+                      collider_strength = collider_strength)
+  )
+}
+
+# S11e: 混合構造（交絡とcolliderが混在、識別困難）
+dgp_collider_mixed <- function(n = 500, p = 500,
+                                n_confounders = 5,
+                                n_colliders = 5,
+                                n_mediators = 3,
+                                seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+
+  X <- matrix(rnorm(n * p), n, p)
+  colnames(X) <- paste0("X", 1:p)
+
+  # 真の交絡
+  beta_t_conf <- c(rep(0.3, n_confounders), rep(0, p - n_confounders))
+  beta_y_conf <- c(rep(0.2, n_confounders), rep(0, p - n_confounders))
+
+  ps <- plogis(X %*% beta_t_conf)
+  T <- rbinom(n, 1, ps)
+
+  # 媒介変数（調整すべきでない）: T -> M -> Y
+  mediator_start <- n_confounders + 1
+  for (j in 1:n_mediators) {
+    m_idx <- n_confounders + j
+    X[, m_idx] <- 0.5 * T + rnorm(n, sd = 0.5)
+  }
+
+  # 媒介変数を通じた効果
+  mediator_idx <- mediator_start:(n_confounders + n_mediators)
+  Y_through_mediator <- 0.3 * rowSums(X[, mediator_idx, drop = FALSE])
+
+  tau <- 2.0
+  Y <- X %*% beta_y_conf + tau * T + Y_through_mediator + rnorm(n)
+
+  # 合流点
+  collider_start <- n_confounders + n_mediators + 1
+  for (j in 1:n_colliders) {
+    col_idx <- collider_start + j - 1
+    X[, col_idx] <- 0.4 * T + 0.4 * Y + rnorm(n, sd = 0.5)
+  }
+
+  variable_roles <- list(
+    confounders = 1:n_confounders,
+    mediators = mediator_start:(n_confounders + n_mediators),
+    colliders = collider_start:(collider_start + n_colliders - 1),
+    neutral = (collider_start + n_colliders):p
+  )
+
+  list(
+    X = X, T = T, Y = Y,
+    true_ate = tau,  # 直接効果のみ
+    true_total_effect = tau + 0.5 * 0.3 * n_mediators,  # 総効果
+    propensity_score = ps,
+    variable_roles = variable_roles,
+    dgp_name = "collider_mixed",
+    dgp_params = list(n = n, p = p, n_confounders = n_confounders,
+                      n_colliders = n_colliders, n_mediators = n_mediators)
   )
 }
 ```
@@ -862,6 +1161,169 @@ cf_benchmark_overlap_sweep <- function(
   ...
 ) {
   # 各overlap強度での性能を評価
+}
+
+# 非線形強度スイープ実験
+cf_benchmark_nonlinearity_sweep <- function(
+  nonlinear_type = "combined",
+  strength_seq = c(0, 0.25, 0.5, 0.75, 1.0),
+  methods = c("grf", "bcf", "hdml", "gformula", "tmle"),
+  n_rep = 50,
+  ...
+) {
+  results <- list()
+  for (strength in strength_seq) {
+    res <- cf_benchmark(
+      dgp = function() dgp_nonlinear_confounding(
+        nonlinear_type = nonlinear_type,
+        strength = strength
+      ),
+      methods = methods,
+      n_rep = n_rep,
+      ...
+    )
+    res$strength <- strength
+    results[[as.character(strength)]] <- res
+  }
+  structure(results, class = "cf_nonlinearity_sweep")
+}
+
+# 密度スイープ実験
+cf_benchmark_density_sweep <- function(
+  n_confounders_seq = c(10, 25, 50, 100, 200, 500),
+  coef_scaling = "sqrt",
+  methods = c("grf", "ipw", "hdml", "tmle", "bcf"),
+  n_rep = 50,
+  ...
+) {
+  results <- list()
+  for (n_conf in n_confounders_seq) {
+    res <- cf_benchmark(
+      dgp = function() dgp_dense_confounding(
+        n_confounders = n_conf,
+        coef_scaling = coef_scaling
+      ),
+      methods = methods,
+      n_rep = n_rep,
+      ...
+    )
+    res$n_confounders <- n_conf
+    results[[as.character(n_conf)]] <- res
+  }
+  structure(results, class = "cf_density_sweep")
+}
+
+# 共変量シフト強度スイープ実験
+cf_benchmark_covariate_shift_sweep <- function(
+  shift_type = "combined",
+  magnitude_seq = c("mild", "moderate", "severe"),
+  methods = c("grf", "ipw", "hdml", "tmle", "bcf"),
+  n_rep = 50,
+  ...
+) {
+  # 強度設定
+  params <- list(
+    mild = list(mean_shift = 0.5, var_ratio = 1.2, cor_shift = 0.1),
+    moderate = list(mean_shift = 1.0, var_ratio = 1.5, cor_shift = 0.2),
+    severe = list(mean_shift = 2.0, var_ratio = 2.0, cor_shift = 0.4)
+  )
+
+  results <- list()
+  for (mag in magnitude_seq) {
+    p <- params[[mag]]
+    res <- cf_benchmark(
+      dgp = function() dgp_covariate_shift(
+        mean_shift = p$mean_shift,
+        var_ratio = p$var_ratio,
+        cor_shift = p$cor_shift
+      ),
+      methods = methods,
+      n_rep = n_rep,
+      ...
+    )
+    res$magnitude <- mag
+    results[[mag]] <- res
+  }
+  structure(results, class = "cf_shift_sweep")
+}
+
+# 相関強度スイープ実験
+cf_benchmark_correlation_sweep <- function(
+  correlation_type = "block",
+  cor_seq = c(0.1, 0.3, 0.5, 0.7, 0.9),
+  methods = c("grf", "hdml", "tmle", "bcf"),
+  n_rep = 50,
+  ...
+) {
+  results <- list()
+  for (cor_val in cor_seq) {
+    dgp_fn <- switch(correlation_type,
+      "block" = function() dgp_correlated_confounding_block(within_cor = cor_val),
+      "ar1"   = function() dgp_correlated_confounding_ar1(rho = cor_val)
+    )
+    res <- cf_benchmark(
+      dgp = dgp_fn,
+      methods = methods,
+      n_rep = n_rep,
+      ...
+    )
+    res$correlation <- cor_val
+    results[[as.character(cor_val)]] <- res
+  }
+  structure(results, class = "cf_correlation_sweep")
+}
+
+# 未観測交絡強度スイープ実験
+cf_benchmark_unmeasured_sweep <- function(
+  strength_seq = c(0.1, 0.2, 0.3, 0.5, 0.7, 1.0),
+  n_unobserved = 5,
+  methods = c("grf", "ipw", "hdml", "tmle", "bcf"),
+  n_rep = 50,
+  ...
+) {
+  results <- list()
+  for (strength in strength_seq) {
+    res <- cf_benchmark(
+      dgp = function() dgp_unobserved_confounding(
+        n_unobserved = n_unobserved,
+        unobserved_strength = strength
+      ),
+      methods = methods,
+      n_rep = n_rep,
+      ...
+    )
+    res$strength <- strength
+    res$expected_bias <- strength^2 * n_unobserved
+    results[[as.character(strength)]] <- res
+  }
+  structure(results, class = "cf_unmeasured_sweep")
+}
+
+# Collider強度スイープ実験
+cf_benchmark_collider_sweep <- function(
+  strength_seq = c(0.1, 0.2, 0.3, 0.5, 0.7, 1.0),
+  n_colliders = 3,
+  methods = c("grf", "hdml", "tmle", "bcf"),
+  n_rep = 50,
+  compare_adjustment = TRUE,
+  ...
+) {
+  results <- list()
+  for (strength in strength_seq) {
+    res <- cf_benchmark(
+      dgp = function() dgp_collider(
+        n_colliders = n_colliders,
+        collider_strength = strength
+      ),
+      methods = methods,
+      n_rep = n_rep,
+      ...
+    )
+    res$strength <- strength
+    res$expected_bias_if_adjusted <- strength^2 * n_colliders
+    results[[as.character(strength)]] <- res
+  }
+  structure(results, class = "cf_collider_sweep")
 }
 ```
 
@@ -1083,10 +1545,22 @@ ggplot2
 
 ## 付録A: シナリオ一覧（完全版）
 
+### 基本シナリオ
+
 | ID | 名称 | 設計 | 目的 |
 |----|------|------|------|
 | S1 | 基準 | n=500, p=50, 線形・疎 | ベースライン |
-| S2-S3 | 次元数スイープ | n=200, p=50-10000 | 手法の次元限界 |
+
+### S2-S3: 次元数スイープ
+
+| 設計 | 目的 |
+|------|------|
+| n=200, p=50-10000（8点） | 手法の次元限界を特定 |
+
+### S4: 異質な処置効果（8サブシナリオ）
+
+| ID | 名称 | 設計 | 目的 |
+|----|------|------|------|
 | S4a | 線形異質性 | 強度=中 | 基本的HTE |
 | S4b | 非線形異質性 | sin, 二乗項 | 非線形パターン |
 | S4c | サブグループ異質性 | 3グループ | 離散的異質性 |
@@ -1095,15 +1569,94 @@ ggplot2
 | S4f | 線形異質性（強） | 強度=強 | 強異質性 |
 | S4g | サブグループ（偏り中） | 60/30/10% | 中程度偏り |
 | S4h | サブグループ（偏り大） | 80/15/5% | 希少サブグループ |
-| S5 | 非線形交絡 | sin, 二乗, 交互作用 | モデル柔軟性 |
-| S6 | 密交絡 | 100変数が交絡 | 多数交絡 |
-| S7a | 弱overlap（係数） | good/moderate/weak/extreme | 段階的違反 |
+
+### S5: 非線形交絡（5サブシナリオ + スイープ）
+
+| ID | 名称 | 設計 | 目的 |
+|----|------|------|------|
+| S5a | 二乗項 | Y, T ∝ X² | 単純な非線形 |
+| S5b | 三角関数 | Y, T ∝ sin(πX) | 周期的パターン |
+| S5c | 交互作用 | Y, T ∝ X₁·X₂ | 変数間相互作用 |
+| S5d | 複合非線形 | 上記の組み合わせ | 複雑なパターン |
+| S5e | 閾値効果 | Y, T ∝ I(X > c) | ステップ関数的 |
+| スイープ | 非線形強度 | strength=0-1.0（5点） | 強度の影響 |
+
+### S6: 密交絡（スイープ）
+
+| 設計 | 目的 |
+|------|------|
+| n_confounders=10-500（6点） | 交絡変数数の限界 |
+| coef_scaling=fixed/sqrt/linear | スケーリング方式の影響 |
+
+### S7: 弱overlap（6サブシナリオ）
+
+| ID | 名称 | 設計 | 目的 |
+|----|------|------|------|
+| S7a-good | 係数スケール | PS∈[0.1, 0.9] | ベースライン |
+| S7a-moderate | 係数スケール | PS∈[0.05, 0.95] | 軽度違反 |
+| S7a-weak | 係数スケール | PS∈[0.01, 0.99] | 実質的違反 |
+| S7a-extreme | 係数スケール | PS∈[0.001, 0.999] | 重度違反 |
 | S7b | 構造的違反 | 一部でPS≈0 | 完全違反 |
 | S7c | 非対称overlap | 片側極端 | 群間不均衡 |
-| S8 | 共変量シフト | 平均・分散・相関シフト | 分布不一致 |
-| S9 | 相関交絡 | ブロック相関 | 共発現 |
-| S10 | 未観測交絡 | 一部観測不能 | 感度分析 |
-| S11 | 合流点 | collider含む | 不適切調整 |
+
+### S8: 共変量シフト（4サブシナリオ + スイープ）
+
+| ID | 名称 | 設計 | 目的 |
+|----|------|------|------|
+| S8a | 平均シフトのみ | mean_shift変動 | 位置のずれ |
+| S8b | 分散シフトのみ | var_ratio変動 | スケールのずれ |
+| S8c | 相関シフトのみ | cor_shift変動 | 構造のずれ |
+| S8d | 複合シフト | 全パラメータ変動 | 現実的状況 |
+| スイープ | シフト強度 | mild/moderate/severe | 強度の影響 |
+
+### S9: 相関交絡（5サブシナリオ + スイープ）
+
+| ID | 名称 | 設計 | 目的 |
+|----|------|------|------|
+| S9a | ブロック相関（弱） | within_cor=0.3 | 弱い共発現 |
+| S9b | ブロック相関（中） | within_cor=0.5 | 中程度共発現 |
+| S9c | ブロック相関（強） | within_cor=0.7 | 強い共発現 |
+| S9d | AR(1)構造 | rho=0.3-0.7 | 順序依存 |
+| S9e | 因子モデル | n_factors=5-20 | 潜在因子構造 |
+| スイープ | 相関強度 | cor=0.1-0.9（5点） | 強度の影響 |
+
+### S10: 未観測交絡（5サブシナリオ + スイープ）
+
+| ID | 名称 | 設計 | 目的 |
+|----|------|------|------|
+| S10a | 弱い未観測交絡 | strength=0.2 | 軽微なバイアス |
+| S10b | 中程度 | strength=0.5 | 中程度バイアス |
+| S10c | 強い未観測交絡 | strength=0.8 | 深刻なバイアス |
+| S10d | 多数の未観測 | n_unobserved=1-20 | 未観測変数の数 |
+| S10e | 観測割合 | obs_ratio=0.5-0.9 | 交絡の観測割合 |
+| スイープ | 未観測強度 | strength=0.1-1.0（6点） | 強度の影響 |
+
+### S11: 合流点（5サブシナリオ + スイープ）
+
+| ID | 名称 | 設計 | 目的 |
+|----|------|------|------|
+| S11a | 弱いcollider | effect=0.2 | 軽微な選択バイアス |
+| S11b | 中程度 | effect=0.5 | 中程度バイアス |
+| S11c | 強いcollider | effect=0.8 | 深刻なバイアス |
+| S11d | collider数 | n_colliders=1-10 | 複数のcollider |
+| S11e | 混合構造 | 交絡+媒介+collider | 変数選択の難しさ |
+| スイープ | collider強度 | effect=0.1-1.0（6点） | 強度の影響 |
+
+### シナリオ数サマリー
+
+| カテゴリ | サブシナリオ数 | スイープ実験 |
+|---------|--------------|-------------|
+| S1 | 1 | - |
+| S2-S3 | - | 次元数（8点） |
+| S4 | 8 | 異質性強度 |
+| S5 | 5 | 非線形強度（5点） |
+| S6 | - | 密度（6点）× スケーリング（3種） |
+| S7 | 6 | overlap（4点） |
+| S8 | 4 | シフト強度（3点） |
+| S9 | 5 | 相関強度（5点） |
+| S10 | 5 | 未観測強度（6点） |
+| S11 | 5 | collider強度（6点） |
+| **合計** | **39** | **9種のスイープ** |
 
 ---
 
@@ -1113,11 +1666,38 @@ ggplot2
 |---------|---------|
 | S1 | 臨床試験補助解析、少数バイオマーカー研究 |
 | S2-S3 | RNA-seq、プロテオミクス、マルチオミクス統合 |
-| S4a-h | 個別化医療、薬剤反応性、サブタイプ別効果 |
-| S5 | パスウェイ相互作用、用量反応関係 |
-| S6 | 環境疫学、バッチ効果 |
+| S4a-h | 個別化医療、薬剤反応性、サブタイプ別効果、希少レスポンダー |
+| S5a | 用量反応の二次効果 |
+| S5b | 概日リズム、周期的生物プロセス |
+| S5c | パスウェイ相互作用、シグナル伝達クロストーク |
+| S5d | 複雑な生物学的ネットワーク |
+| S5e | バイオマーカー閾値、臨床的カットオフ |
+| S6 | 環境疫学、多数の生活習慣因子、バッチ効果 |
 | S7a-c | 希少疾患、禁忌条件、強い適応基準 |
-| S8 | 異なるコホート比較、前向きvs後ろ向き研究 |
-| S9 | 遺伝子共発現、パスウェイ内遺伝子群 |
-| S10 | バッチ効果、測定されない生活習慣 |
-| S11 | 選択バイアス、生存者バイアス |
+| S8a | 異なる母集団間の比較 |
+| S8b | 測定プラットフォームの違い |
+| S8c | 技術的変動、バッチ効果 |
+| S8d | 異なるコホート統合、メタ解析 |
+| S9a-c | 遺伝子共発現ネットワーク（弱〜強） |
+| S9d | ゲノム位置依存の相関、連鎖不平衡 |
+| S9e | 転写因子調節ネットワーク、潜在クラスター |
+| S10a-c | バッチ効果（軽度〜重度） |
+| S10d | 複合的な未測定変数 |
+| S10e | 部分的オミクス測定、コスト制約 |
+| S11a-c | 入院バイアス、生存者バイアス（軽度〜重度） |
+| S11d | 多段階の選択プロセス |
+| S11e | 複雑な因果構造、観察研究の典型例 |
+
+## 付録C: スイープ実験一覧
+
+| スイープ名 | パラメータ | 値の範囲 | 目的 |
+|-----------|-----------|---------|------|
+| dimension_sweep | p | 50-10000（8点） | 次元限界の特定 |
+| heterogeneity_sweep | strength | 0-2.0（6点） | 異質性検出力 |
+| nonlinearity_sweep | strength | 0-1.0（5点） | 非線形対応力 |
+| density_sweep | n_confounders | 10-500（6点） | 密交絡対応力 |
+| overlap_sweep | overlap_strength | good-extreme（4点） | positivity違反耐性 |
+| shift_sweep | magnitude | mild-severe（3点） | 分布シフト耐性 |
+| correlation_sweep | within_cor | 0.1-0.9（5点） | 相関構造対応力 |
+| unmeasured_sweep | strength | 0.1-1.0（6点） | 未観測交絡のバイアス |
+| collider_sweep | effect | 0.1-1.0（6点） | collider調整の影響 |
