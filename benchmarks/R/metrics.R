@@ -9,29 +9,39 @@
 #' For each scenario, ranks the methods based on the specified metric.
 #' This is the first step for Friedman/Nemenyi nonparametric comparison.
 #'
-#' @param df Data frame with columns: scenario_id, method, and metric column
+#' @param df Data frame with columns: grouping column(s), method, and metric column
 #' @param metric Character, name of metric column to rank
+#' @param groups Character vector of column names to group by (default "scenario_id")
 #' @param lower_is_better Logical, TRUE if lower metric values are better (default TRUE for RMSE)
-#' @return Data frame with scenario_id, method, rank columns
+#' @return Data frame with grouping column(s), method, rank columns
 #' @export
-compute_ranks <- function(df, metric, lower_is_better = TRUE) {
+compute_ranks <- function(df, metric, groups = "scenario_id", lower_is_better = TRUE) {
   if (!is.data.frame(df)) {
     stop("'df' must be a data.frame")
   }
-  if (!all(c("scenario_id", "method") %in% names(df))) {
-    stop("'df' must contain 'scenario_id' and 'method' columns")
+
+  # Validate groups parameter
+  if (!all(groups %in% names(df))) {
+    stop("'groups' columns not found in data frame: ",
+         paste(setdiff(groups, names(df)), collapse = ", "))
+  }
+
+  if (!"method" %in% names(df)) {
+    stop("'df' must contain 'method' column")
   }
   if (!metric %in% names(df)) {
     stop("Metric '", metric, "' not found in data frame")
   }
 
-  scenarios <- unique(df$scenario_id)
+  # Use first column of groups for scenario-level grouping
+  group_col <- groups[1]
+  group_values <- unique(df[[group_col]])
   methods <- unique(df$method)
 
-  ranks_list <- lapply(scenarios, function(s) {
-    sub_df <- df[df$scenario_id == s, ]
+  ranks_list <- lapply(group_values, function(g) {
+    sub_df <- df[df[[group_col]] == g, ]
 
-    # Handle missing methods for this scenario
+    # Handle missing methods for this group
     if (nrow(sub_df) == 0) {
       return(NULL)
     }
@@ -58,12 +68,15 @@ compute_ranks <- function(df, metric, lower_is_better = TRUE) {
       }
     }
 
-    data.frame(
-      scenario_id = s,
+    # Build result data frame with the group column name
+    result <- data.frame(
+      group_value = g,
       method = sub_df$method,
       rank = r,
       stringsAsFactors = FALSE
     )
+    names(result)[1] <- group_col
+    result
   })
 
   # Remove NULL entries and combine
