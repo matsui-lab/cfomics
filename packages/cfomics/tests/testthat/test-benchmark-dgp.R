@@ -365,3 +365,12 @@ test_that("dgp_nonlinear_propensity has linear outcome recoverable by OLS", {
   ate_ols <- coef(fit)["r$T"]
   expect_lt(abs(ate_ols - r$true_ate), 0.3)
 })
+
+test_that("dgp_double_nonlinear produces valid data", {
+  set.seed(42)
+  result <- dgp_double_nonlinear(n = 200, p = 10)
+  expect_equal(length(result$Y), 200)
+  expect_equal(ncol(result$X), 10)
+  expect_true(all(result$T %in% c(0, 1)))
+  expect_equal(result$dgp_name, "double_nonlinear")
+})

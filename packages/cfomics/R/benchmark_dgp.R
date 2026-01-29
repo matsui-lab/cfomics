@@ -926,3 +926,45 @@ dgp_nonlinear_propensity <- function(n = 500, p = 500,
     dgp_params = list(n = n, p = p, nonlinearity = nonlinearity)
   )
 }
+
+#' Generate double nonlinear DGP (S14)
+#'
+#' Both outcome and propensity score are nonlinear.
+#' All linear methods struggle. Doubly robust methods lose DR protection
+#' since both nuisance models are misspecified.
+#'
+#' @param n Integer, number of observations
+#' @param p Integer, number of covariates
+#' @param seed Integer, random seed
+#' @return List with X, T, Y, true_ate, true_ite, propensity_score, dgp_name, dgp_params
+#' @export
+dgp_double_nonlinear <- function(n = 500, p = 500, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+
+  X <- matrix(stats::rnorm(n * p), n, p)
+  colnames(X) <- paste0("X", 1:p)
+
+  # Nonlinear propensity score
+  logit_ps <- sin(2 * X[, 1]) + X[, 2]^2 * (X[, 3] > 0) +
+    abs(X[, 1] * X[, 2]) - 1
+  ps <- stats::plogis(logit_ps)
+  ps <- pmin(pmax(ps, 0.05), 0.95)
+  T <- stats::rbinom(n, 1, ps)
+
+  # Nonlinear outcome
+  tau <- 2.0
+  mu0 <- X[, 1]^3 / 3 + exp(X[, 2] / 2) + X[, 3] * X[, 4] * (X[, 1] > 0) +
+    sin(2 * X[, 1]) * cos(X[, 2])
+  Y <- as.numeric(mu0 + tau * T + stats::rnorm(n))
+
+  list(
+    X = X,
+    T = T,
+    Y = Y,
+    true_ate = tau,
+    true_ite = rep(tau, n),
+    propensity_score = as.numeric(ps),
+    dgp_name = "double_nonlinear",
+    dgp_params = list(n = n, p = p)
+  )
+}
