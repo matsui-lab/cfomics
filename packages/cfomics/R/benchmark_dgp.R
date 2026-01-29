@@ -878,3 +878,51 @@ dgp_nonlinear_outcome <- function(n = 500, p = 500,
     dgp_params = list(n = n, p = p, nonlinearity = nonlinearity)
   )
 }
+
+#' Generate nonlinear propensity score DGP (S13)
+#'
+#' Generates data with nonlinear propensity score but linear outcome.
+#' This breaks hdps (IPW with linear PS model) while gformula (no PS) is unaffected.
+#' hdml and tmle are partially protected by double robustness.
+#'
+#' @param n Integer, number of observations
+#' @param p Integer, number of covariates
+#' @param nonlinearity Character, "moderate" or "severe"
+#' @param seed Integer, random seed
+#' @return List with X, T, Y, true_ate, true_ite, propensity_score, dgp_name, dgp_params
+#' @export
+dgp_nonlinear_propensity <- function(n = 500, p = 500,
+                                      nonlinearity = "moderate",
+                                      seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+
+  X <- matrix(stats::rnorm(n * p), n, p)
+  colnames(X) <- paste0("X", 1:p)
+
+  # Nonlinear propensity score
+  if (nonlinearity == "moderate") {
+    logit_ps <- X[, 1]^2 - 0.5 + X[, 2] * X[, 3]
+  } else {
+    logit_ps <- sin(2 * X[, 1]) + X[, 2]^2 * (X[, 3] > 0) +
+      abs(X[, 1] * X[, 2]) - 1
+  }
+  ps <- stats::plogis(logit_ps)
+  ps <- pmin(pmax(ps, 0.05), 0.95)
+  T <- stats::rbinom(n, 1, ps)
+
+  # Linear outcome (gformula can handle this correctly)
+  tau <- 2.0
+  beta_y <- c(1.0, -0.8, 0.6, -0.4, 0.2, rep(0, p - 5))
+  Y <- as.numeric(X %*% beta_y + tau * T + stats::rnorm(n))
+
+  list(
+    X = X,
+    T = T,
+    Y = Y,
+    true_ate = tau,
+    true_ite = rep(tau, n),
+    propensity_score = as.numeric(ps),
+    dgp_name = "nonlinear_propensity",
+    dgp_params = list(n = n, p = p, nonlinearity = nonlinearity)
+  )
+}

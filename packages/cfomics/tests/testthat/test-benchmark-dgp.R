@@ -347,3 +347,21 @@ test_that("dgp_nonlinear_outcome severe has stronger nonlinearity", {
   # But different Y (different outcome surfaces)
   expect_false(all(r_mod$Y == r_sev$Y))
 })
+
+test_that("dgp_nonlinear_propensity produces valid data", {
+  set.seed(42)
+  result <- dgp_nonlinear_propensity(n = 200, p = 10, nonlinearity = "moderate")
+  expect_equal(length(result$Y), 200)
+  expect_equal(ncol(result$X), 10)
+  expect_true(all(result$T %in% c(0, 1)))
+  expect_true(is.numeric(result$true_ate))
+  expect_equal(result$dgp_name, "nonlinear_propensity")
+})
+
+test_that("dgp_nonlinear_propensity has linear outcome recoverable by OLS", {
+  set.seed(42)
+  r <- dgp_nonlinear_propensity(n = 5000, p = 10, nonlinearity = "moderate")
+  fit <- lm(r$Y ~ r$T + r$X)
+  ate_ols <- coef(fit)["r$T"]
+  expect_lt(abs(ate_ols - r$true_ate), 0.3)
+})
