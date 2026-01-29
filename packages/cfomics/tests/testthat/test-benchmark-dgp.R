@@ -306,3 +306,22 @@ test_that("dgp_collider generates valid data with collider", {
   expect_equal(length(dgp$collider), 100)
   expect_equal(dgp$dgp_name, "collider")
 })
+
+test_that("dgp_collider includes collider in X matrix", {
+  set.seed(42)
+  result <- dgp_collider(n = 200, p = 10, collider_strength = 2.0)
+  expect_equal(ncol(result$X), 11)
+  collider_col <- result$X[, 1]
+  cor_T <- abs(cor(collider_col, result$T))
+  cor_Y <- abs(cor(collider_col, result$Y))
+  expect_gt(cor_T, 0.1)
+  expect_gt(cor_Y, 0.1)
+})
+
+test_that("dgp_collider with different strengths produces different X matrices", {
+  set.seed(42)
+  r1 <- dgp_collider(n = 500, p = 10, collider_strength = 0.5)
+  set.seed(42)
+  r2 <- dgp_collider(n = 500, p = 10, collider_strength = 2.0)
+  expect_false(all(r1$X[, 1] == r2$X[, 1]))
+})

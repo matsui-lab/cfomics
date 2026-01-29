@@ -813,6 +813,10 @@ dgp_collider <- function(n = 500, p = 500,
   # Collider is affected by both T and Y
   collider <- collider_strength * T + collider_strength * Y + stats::rnorm(n)
 
+  # Include collider as first column of X so methods that adjust for all X columns see it
+  X <- cbind(collider, X)
+  colnames(X) <- c("collider", paste0("X", 1:p))
+
   list(
     X = X,
     T = T,
