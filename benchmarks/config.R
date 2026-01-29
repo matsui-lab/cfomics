@@ -122,7 +122,18 @@ benchmark_config <- function() {
       list(id = "S11_str0",   dgp = "dgp_collider", n = 1000L, p = 100L, params = list(collider_strength = 0)),
       list(id = "S11_str0.5", dgp = "dgp_collider", n = 1000L, p = 100L, params = list(collider_strength = 0.5)),
       list(id = "S11_str1",   dgp = "dgp_collider", n = 1000L, p = 100L, params = list(collider_strength = 1.0)),
-      list(id = "S11_str2",   dgp = "dgp_collider", n = 1000L, p = 100L, params = list(collider_strength = 2.0))
+      list(id = "S11_str2",   dgp = "dgp_collider", n = 1000L, p = 100L, params = list(collider_strength = 2.0)),
+
+      # S12: Nonlinear outcome
+      list(id = "S12_nonlinear_outcome_moderate", dgp = "dgp_nonlinear_outcome", n = 1000L, p = 100L, params = list(nonlinearity = "moderate")),
+      list(id = "S12_nonlinear_outcome_severe",   dgp = "dgp_nonlinear_outcome", n = 1000L, p = 100L, params = list(nonlinearity = "severe")),
+
+      # S13: Nonlinear propensity
+      list(id = "S13_nonlinear_propensity_moderate", dgp = "dgp_nonlinear_propensity", n = 1000L, p = 100L, params = list(nonlinearity = "moderate")),
+      list(id = "S13_nonlinear_propensity_severe",   dgp = "dgp_nonlinear_propensity", n = 1000L, p = 100L, params = list(nonlinearity = "severe")),
+
+      # S14: Double nonlinear
+      list(id = "S14_double_nonlinear", dgp = "dgp_double_nonlinear", n = 1000L, p = 100L, params = list())
     )
   )
 }
