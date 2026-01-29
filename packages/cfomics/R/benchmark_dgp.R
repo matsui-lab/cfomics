@@ -830,6 +830,37 @@ dgp_collider <- function(n = 500, p = 500,
   )
 }
 
+#' Generate benchmark data by DGP name
+#'
+#' Dispatches to the appropriate DGP function based on a string name.
+#'
+#' @param dgp Character, the DGP name (e.g., "baseline", "nonlinear_outcome")
+#' @param params List of parameters passed to the DGP function
+#' @return List with X, T, Y, true_ate, true_ite, etc.
+#' @export
+generate_benchmark_data <- function(dgp, params = list()) {
+  dgp_fn <- switch(dgp,
+    "baseline"               = dgp_baseline,
+    "dimension_sweep"        = dgp_dimension_sweep,
+    "heterogeneous_linear"   = dgp_heterogeneous_linear,
+    "heterogeneous_nonlinear" = dgp_heterogeneous_nonlinear,
+    "heterogeneous_subgroup" = dgp_heterogeneous_subgroup,
+    "heterogeneous_qualitative" = dgp_heterogeneous_qualitative,
+    "nonlinear_confounding"  = dgp_nonlinear_confounding,
+    "dense_confounding"      = dgp_dense_confounding,
+    "weak_overlap"           = dgp_weak_overlap,
+    "covariate_shift"        = dgp_covariate_shift,
+    "correlated_confounding" = dgp_correlated_confounding,
+    "unobserved_confounding" = dgp_unobserved_confounding,
+    "collider"               = dgp_collider,
+    "nonlinear_outcome"      = dgp_nonlinear_outcome,
+    "nonlinear_propensity"   = dgp_nonlinear_propensity,
+    "double_nonlinear"       = dgp_double_nonlinear,
+    rlang::abort(paste0("Unknown DGP: '", dgp, "'"), class = "cfomics_unknown_dgp")
+  )
+  do.call(dgp_fn, params)
+}
+
 #' Generate nonlinear outcome DGP (S12)
 #'
 #' Generates data with nonlinear outcome model but linear propensity score.
