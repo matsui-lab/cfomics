@@ -829,3 +829,52 @@ dgp_collider <- function(n = 500, p = 500,
     dgp_params = list(n = n, p = p, collider_strength = collider_strength)
   )
 }
+
+#' Generate nonlinear outcome DGP (S12)
+#'
+#' Generates data with nonlinear outcome model but linear propensity score.
+#' This breaks gformula (OLS) while leaving hdps (IPW-only) unaffected.
+#' hdml and tmle are partially affected since their outcome models are also linear.
+#'
+#' @param n Integer, number of observations
+#' @param p Integer, number of covariates
+#' @param nonlinearity Character, "moderate" or "severe"
+#' @param seed Integer, random seed
+#' @return List with X, T, Y, true_ate, true_ite, propensity_score, dgp_name, dgp_params
+#' @export
+dgp_nonlinear_outcome <- function(n = 500, p = 500,
+                                   nonlinearity = "moderate",
+                                   seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+
+  X <- matrix(stats::rnorm(n * p), n, p)
+  colnames(X) <- paste0("X", 1:p)
+
+  # Linear propensity score (all methods can estimate this correctly)
+  beta_t <- c(0.5, -0.3, 0.2, rep(0, p - 3))
+  ps <- stats::plogis(X %*% beta_t)
+  T <- stats::rbinom(n, 1, ps)
+
+  tau <- 2.0
+
+  # Nonlinear outcome surface
+  if (nonlinearity == "moderate") {
+    mu0 <- X[, 1]^2 + X[, 2] * X[, 3] + sin(X[, 1])
+  } else {
+    mu0 <- X[, 1]^3 / 3 + exp(X[, 2] / 2) + X[, 3] * X[, 4] * (X[, 1] > 0) +
+      sin(2 * X[, 1]) * cos(X[, 2])
+  }
+
+  Y <- as.numeric(mu0 + tau * T + stats::rnorm(n))
+
+  list(
+    X = X,
+    T = T,
+    Y = Y,
+    true_ate = tau,
+    true_ite = rep(tau, n),
+    propensity_score = as.numeric(ps),
+    dgp_name = "nonlinear_outcome",
+    dgp_params = list(n = n, p = p, nonlinearity = nonlinearity)
+  )
+}

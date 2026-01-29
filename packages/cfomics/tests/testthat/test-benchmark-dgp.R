@@ -325,3 +325,25 @@ test_that("dgp_collider with different strengths produces different X matrices",
   r2 <- dgp_collider(n = 500, p = 10, collider_strength = 2.0)
   expect_false(all(r1$X[, 1] == r2$X[, 1]))
 })
+
+test_that("dgp_nonlinear_outcome produces valid data", {
+  set.seed(42)
+  result <- dgp_nonlinear_outcome(n = 200, p = 10, nonlinearity = "moderate")
+  expect_equal(length(result$Y), 200)
+  expect_equal(ncol(result$X), 10)
+  expect_equal(length(result$T), 200)
+  expect_true(all(result$T %in% c(0, 1)))
+  expect_true(is.numeric(result$true_ate))
+  expect_equal(result$dgp_name, "nonlinear_outcome")
+})
+
+test_that("dgp_nonlinear_outcome severe has stronger nonlinearity", {
+  set.seed(42)
+  r_mod <- dgp_nonlinear_outcome(n = 1000, p = 10, nonlinearity = "moderate")
+  set.seed(42)
+  r_sev <- dgp_nonlinear_outcome(n = 1000, p = 10, nonlinearity = "severe")
+  # Both should have same treatment assignment (same seed, same X, same PS model)
+  expect_equal(r_mod$T, r_sev$T)
+  # But different Y (different outcome surfaces)
+  expect_false(all(r_mod$Y == r_sev$Y))
+})
