@@ -31,7 +31,9 @@ benchmark_config <- function() {
     scenarios_path = scenarios_path,
 
     # Methods to benchmark
-    methods = c("gformula", "hdml", "hdps", "bcf", "tmle"),
+    # BCF excluded from default run due to MCMC computational cost (~hours per job at n>=1000)
+    # To include BCF, add "bcf" here and reduce n_reps or use HPC
+    methods = c("gformula", "hdml", "hdps", "tmle"),
 
     # Number of replications per scenario setting
     n_reps = 50L,
@@ -43,8 +45,9 @@ benchmark_config <- function() {
     n_workers = 0L,
 
     # BCF MCMC settings
-    bcf_n_burn = 1000L,
-    bcf_n_iter = 2000L,
+    # Reduced from 1000/2000 for feasible runtime (~2-5 min per BCF job)
+    bcf_n_burn = 100L,
+    bcf_n_iter = 200L,
 
     # Formula: how many covariates to include
     formula_k = 10L,
