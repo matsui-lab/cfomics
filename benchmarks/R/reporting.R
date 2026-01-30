@@ -88,7 +88,7 @@ plot_method_heatmap <- function(df, metric, lower_is_better = TRUE, title = NULL
       midpoint = midpoint,
       na.value = "grey80"
     ) +
-    theme_minimal(base_size = 10) +
+    theme_minimal(base_size = 10, base_family = ggplot2::theme_get()$text$family) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1),
       panel.grid = element_blank(),
@@ -146,7 +146,7 @@ plot_bias_boxplot <- function(df, bias_col = "bias_ate", title = NULL) {
     geom_boxplot(alpha = 0.8, outlier.size = 1) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
     scale_fill_manual(values = colors_to_use, guide = "none") +
-    theme_minimal(base_size = 10) +
+    theme_minimal(base_size = 10, base_family = ggplot2::theme_get()$text$family) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1)
     ) +
@@ -200,7 +200,7 @@ plot_coverage_heatmap <- function(df, coverage_col = "coverage", nominal = 0.95,
       limits = c(0, 1),
       na.value = "grey80"
     ) +
-    theme_minimal(base_size = 10) +
+    theme_minimal(base_size = 10, base_family = ggplot2::theme_get()$text$family) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1),
       panel.grid = element_blank(),
@@ -360,7 +360,7 @@ plot_cd_diagram <- function(friedman_result, nemenyi_result, title = NULL) {
       name = "Average Rank"
     ) +
     scale_y_continuous(limits = c(0.5, n + 1.5)) +
-    theme_minimal(base_size = 10) +
+    theme_minimal(base_size = 10, base_family = ggplot2::theme_get()$text$family) +
     theme(
       axis.text.y = element_blank(),
       axis.title.y = element_blank(),
@@ -421,7 +421,7 @@ plot_sweep_curves <- function(df, x_var, metrics, title = NULL) {
       geom_line(linewidth = 0.8) +
       geom_point(size = 2) +
       scale_color_manual(values = colors_to_use) +
-      theme_minimal(base_size = 10) +
+      theme_minimal(base_size = 10, base_family = ggplot2::theme_get()$text$family) +
       theme(
         legend.position = "bottom",
         legend.title = element_blank()
@@ -524,7 +524,7 @@ plot_bias_variance <- function(df, bias_col = "mean_bias", var_col = "sd_bias",
     scale_fill_manual(
       values = c("Bias^2" = "#E69F00", "Variance" = "#56B4E9")
     ) +
-    theme_minimal(base_size = 10) +
+    theme_minimal(base_size = 10, base_family = ggplot2::theme_get()$text$family) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1),
       legend.position = "top",
@@ -634,7 +634,7 @@ plot_computation_time <- function(df, time_col = "mean_time", log_scale = TRUE,
   }
 
   p <- p +
-    theme_minimal(base_size = 10) +
+    theme_minimal(base_size = 10, base_family = ggplot2::theme_get()$text$family) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1)
     ) +
@@ -765,7 +765,8 @@ create_benchmark_report_figure <- function(agg_df, raw_df = NULL,
   combined <- patchwork::wrap_plots(plots) +
     patchwork::plot_annotation(
       title = title,
-      theme = theme(plot.title = element_text(size = 14, face = "bold"))
+      theme = theme(plot.title = element_text(size = 14, face = "bold",
+                                              family = ggplot2::theme_get()$text$family))
     )
 
   combined

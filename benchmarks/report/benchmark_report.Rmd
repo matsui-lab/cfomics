@@ -44,7 +44,8 @@ knitr::opts_chunk$set(
   fig.align = "center",
   fig.pos = "H",
   out.width = "100%",
-  cache = FALSE
+  cache = FALSE,
+  dev = if (requireNamespace("ragg", quietly = TRUE)) "ragg_png" else "png"
 )
 
 # Required packages
@@ -65,6 +66,19 @@ source(file.path(dirname(knitr::current_input()), "..", "R", "reporting.R"))
 
 # Language suffix for child documents
 lang_suffix <- params$lang
+
+# Set Japanese-compatible font for ggplot2 when lang=ja
+if (params$lang == "ja") {
+  # macOS: Hiragino Sans, Linux: Noto Sans CJK JP, Windows: Yu Gothic
+  ja_font <- if (Sys.info()["sysname"] == "Darwin") {
+    "HiraginoSans-W3"
+  } else if (Sys.info()["sysname"] == "Linux") {
+    "Noto Sans CJK JP"
+  } else {
+    "Yu Gothic"
+  }
+  theme_set(theme_minimal(base_family = ja_font))
+}
 ```
 
 ```{r load-data}
