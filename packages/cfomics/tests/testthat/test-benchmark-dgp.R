@@ -337,15 +337,27 @@ test_that("dgp_nonlinear_outcome produces valid data", {
   expect_equal(result$dgp_name, "nonlinear_outcome")
 })
 
-test_that("dgp_nonlinear_outcome severe has stronger nonlinearity", {
+test_that("dgp_nonlinear_outcome moderate and severe produce different outcomes", {
   set.seed(42)
   r_mod <- dgp_nonlinear_outcome(n = 1000, p = 10, nonlinearity = "moderate")
   set.seed(42)
   r_sev <- dgp_nonlinear_outcome(n = 1000, p = 10, nonlinearity = "severe")
-  # Both should have same treatment assignment (same seed, same X, same PS model)
-  expect_equal(r_mod$T, r_sev$T)
-  # But different Y (different outcome surfaces)
+  # Different nonlinearity levels produce different Y
   expect_false(all(r_mod$Y == r_sev$Y))
+  # Both have valid structure
+  expect_equal(r_mod$dgp_name, "nonlinear_outcome")
+  expect_equal(r_sev$dgp_name, "nonlinear_outcome")
+})
+
+test_that("dgp_nonlinear_outcome creates confounding that biases OLS", {
+  set.seed(123)
+  r <- dgp_nonlinear_outcome(n = 5000, p = 10, nonlinearity = "moderate")
+  # OLS should be biased because it omits h(X) which drives both PS and Y
+  fit <- lm(r$Y ~ r$T + r$X)
+  ate_ols <- coef(fit)["r$T"]
+  bias <- abs(ate_ols - r$true_ate)
+  # With nonlinear confounding, OLS bias should be substantial (> 0.3)
+  expect_gt(bias, 0.3)
 })
 
 test_that("dgp_nonlinear_propensity produces valid data", {
