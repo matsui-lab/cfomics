@@ -225,6 +225,41 @@ if (data_available && nrow(agg_df) > 0) {
 }
 ```
 
+### S12-S14: Model Misspecification Analysis
+
+```{r s12-s14-results, eval=data_available, fig.cap="Model misspecification scenarios: nonlinear confounding (S12), nonlinear propensity (S13), and double nonlinear (S14)", fig.width=10, fig.height=6}
+if (data_available && nrow(agg_df) > 0) {
+  s12_14_df <- agg_df[grep("^S1[234]_", agg_df$scenario_id), ]
+  if (nrow(s12_14_df) > 0) {
+    p <- ggplot(s12_14_df, aes(x = scenario_id, y = rmse_ate, fill = method)) +
+      geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
+      labs(x = "Scenario", y = "RMSE (ATE)", fill = "Method",
+           title = "Model Misspecification: Method Performance") +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    print(p)
+  }
+}
+```
+
+```{r s12-s14-table, eval=data_available}
+if (data_available && nrow(agg_df) > 0) {
+  s12_14_df <- agg_df[grep("^S1[234]_", agg_df$scenario_id), ]
+  if (nrow(s12_14_df) > 0) {
+    if (requireNamespace("kableExtra", quietly = TRUE)) {
+      kableExtra::kbl(s12_14_df[, c("scenario_id", "method", "rmse_ate", "mean_bias", "coverage")],
+                      digits = 3, booktabs = TRUE,
+                      caption = "Model misspecification scenarios (S12-S14) results") |>
+        kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"))
+    } else {
+      knitr::kable(s12_14_df[, c("scenario_id", "method", "rmse_ate", "mean_bias")],
+                   digits = 3, caption = "Model misspecification scenarios (S12-S14) results")
+    }
+  }
+}
+```
+
+S12 tests nonlinear confounding where both outcome and PS depend on the same nonlinear function $h(X)$. Methods using linear outcome models (gformula) suffer omitted-variable bias. S13 tests nonlinear propensity scores with linear outcomes --- IPW-only methods (hdps) are most affected. S14 combines both nonlinearities, removing double robustness protection for AIPW/TMLE methods.
+
 ## Combined Results Figure
 
 ```{r combined-figure, eval=data_available, fig.cap="Comprehensive benchmark results summary", fig.width=12, fig.height=10}

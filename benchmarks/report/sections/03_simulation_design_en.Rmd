@@ -184,11 +184,40 @@ Tests vulnerability to collider conditioning:
 
 Methods that naively include all covariates will show bias; variable selection methods may avoid the collider.
 
+### S12: Nonlinear Confounding (dgp_nonlinear_outcome)
+
+Tests robustness to nonlinear confounding where both outcome and propensity score depend on the same nonlinear function $h(X)$:
+
+- **Nonlinear function**: $h(X) = X_1^2 + X_2 X_3 + \sin(X_1)$ (moderate) or higher-order terms (severe)
+- **Propensity score**: $\text{logit}(e) = \alpha \cdot (h(X) - \bar{h})$, where $\alpha \in \{1.2, 0.8\}$
+- **Outcome**: $Y = h(X) + \tau T + \epsilon$
+
+OLS-based methods (gformula) suffer omitted-variable bias because linear models cannot capture $h(X)$. IPW-based methods (hdps) are affected through propensity score misestimation.
+
+### S13: Nonlinear Propensity Score (dgp_nonlinear_propensity)
+
+Tests robustness when the propensity score model is nonlinear but the outcome model is linear:
+
+- **Propensity score**: Nonlinear (quadratic, interaction, trigonometric terms)
+- **Outcome**: Linear $Y = X\beta + \tau T + \epsilon$
+- **Nonlinearity levels**: moderate, severe
+
+Methods relying solely on propensity score estimation (hdps) are most affected. Outcome-model-based methods (gformula) are unaffected since the outcome is linear.
+
+### S14: Double Nonlinear (dgp_double_nonlinear)
+
+Tests the worst case where both outcome and propensity score models are nonlinear:
+
+- **Propensity score**: Nonlinear (same as S13 severe)
+- **Outcome**: Nonlinear (same as S12 severe)
+
+All linear methods struggle. Doubly robust methods (hdml, tmle) lose their double robustness protection since both nuisance models are misspecified.
+
 ## Scenario Summary
 
 ```{r scenario-summary, echo=FALSE}
 scenario_summary <- data.frame(
-  Scenario = c("S1", "S2", "S3", "S4a-c", "S5", "S6", "S7", "S8", "S9", "S10", "S11"),
+  Scenario = c("S1", "S2", "S3", "S4a-c", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"),
   Description = c(
     "Baseline (linear, correct spec.)",
     "Dimension sweep (p up to 1000)",
@@ -200,7 +229,10 @@ scenario_summary <- data.frame(
     "Covariate shift",
     "Correlated confounders",
     "Unobserved confounding",
-    "Collider bias"
+    "Collider bias",
+    "Nonlinear confounding (outcome+PS)",
+    "Nonlinear propensity score",
+    "Double nonlinear"
   ),
   `Primary Challenge` = c(
     "None (reference)",
@@ -213,9 +245,12 @@ scenario_summary <- data.frame(
     "Distribution shift",
     "Correlation handling",
     "Identifiability",
-    "Variable selection"
+    "Variable selection",
+    "Outcome model misspecification",
+    "PS model misspecification",
+    "Both models misspecified"
   ),
-  `n Configs` = c(6, 6, 4, 3, 5, 4, 4, 2, 3, 4, 4),
+  `n Configs` = c(6, 6, 4, 3, 5, 4, 4, 2, 3, 4, 4, 2, 2, 1),
   check.names = FALSE
 )
 
