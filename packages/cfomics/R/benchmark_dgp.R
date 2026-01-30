@@ -863,9 +863,9 @@ generate_benchmark_data <- function(dgp, params = list()) {
 
 #' Generate nonlinear outcome DGP (S12)
 #'
-#' Generates data with nonlinear outcome model but linear propensity score.
-#' This breaks gformula (OLS) while leaving hdps (IPW-only) unaffected.
-#' hdml and tmle are partially affected since their outcome models are also linear.
+#' Generates data with nonlinear confounding: both the outcome and propensity
+#' score depend on the same nonlinear function h(X). This creates omitted-variable
+#' bias for methods using linear outcome models (gformula).
 #'
 #' @param n Integer, number of observations
 #' @param p Integer, number of covariates
@@ -881,22 +881,25 @@ dgp_nonlinear_outcome <- function(n = 500, p = 500,
   X <- matrix(stats::rnorm(n * p), n, p)
   colnames(X) <- paste0("X", 1:p)
 
-  # Linear propensity score (all methods can estimate this correctly)
-  beta_t <- c(0.5, -0.3, 0.2, rep(0, p - 3))
-  ps <- stats::plogis(X %*% beta_t)
-  T <- stats::rbinom(n, 1, ps)
-
   tau <- 2.0
 
-  # Nonlinear outcome surface
+  # Nonlinear function h(X) drives both outcome and treatment
   if (nonlinearity == "moderate") {
-    mu0 <- X[, 1]^2 + X[, 2] * X[, 3] + sin(X[, 1])
+    h <- X[, 1]^2 + X[, 2] * X[, 3] + sin(X[, 1])
   } else {
-    mu0 <- X[, 1]^3 / 3 + exp(X[, 2] / 2) + X[, 3] * X[, 4] * (X[, 1] > 0) +
+    h <- X[, 1]^3 / 3 + exp(X[, 2] / 2) + X[, 3] * X[, 4] * (X[, 1] > 0) +
       sin(2 * X[, 1]) * cos(X[, 2])
   }
 
-  Y <- as.numeric(mu0 + tau * T + stats::rnorm(n))
+  # PS depends on h(X) — creates nonlinear confounding
+  ps_coef <- if (nonlinearity == "moderate") 0.8 else 0.5
+  h_centered <- h - mean(h)
+  ps <- stats::plogis(ps_coef * h_centered)
+  ps <- pmin(pmax(ps, 0.05), 0.95)
+  T <- stats::rbinom(n, 1, ps)
+
+  # Outcome depends on same h(X)
+  Y <- as.numeric(h + tau * T + stats::rnorm(n))
 
   list(
     X = X,
