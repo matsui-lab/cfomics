@@ -19,7 +19,7 @@ dgp_nonlinear_outcome(n = 500, p = 500, nonlinearity = "moderate", seed = NULL)
 List with X, T, Y, true_ate, true_ite, propensity_score, dgp_name, dgp_params
 }
 \description{
-Generates data with nonlinear outcome model but linear propensity score.
-This breaks gformula (OLS) while leaving hdps (IPW-only) unaffected.
-hdml and tmle are partially affected since their outcome models are also linear.
+Generates data with nonlinear confounding: both the outcome and propensity
+score depend on the same nonlinear function h(X). This creates omitted-variable
+bias for methods using linear outcome models (gformula).
 }
