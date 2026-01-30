@@ -892,7 +892,7 @@ dgp_nonlinear_outcome <- function(n = 500, p = 500,
   }
 
   # PS depends on h(X) — creates nonlinear confounding
-  ps_coef <- if (nonlinearity == "moderate") 0.8 else 0.5
+  ps_coef <- if (nonlinearity == "moderate") 1.2 else 0.8
   h_centered <- h - mean(h)
   ps <- stats::plogis(ps_coef * h_centered)
   ps <- pmin(pmax(ps, 0.05), 0.95)
