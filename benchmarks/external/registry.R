@@ -45,16 +45,32 @@ run_external_method <- function(method, X, T, Y, ...) {
 #' @param method Character, method name
 #' @return Function or NULL if not found
 get_external_wrapper <- function(method) {
-  wrappers <- list(
-    "matchit" = wrapper_matchit,
-    "weightit" = wrapper_weightit,
-    "hdm" = wrapper_hdm,
-    "doubleml" = wrapper_doubleml,
-    "tmle3" = wrapper_tmle3,
-    "bart" = wrapper_bart,
-    "superlearner" = wrapper_superlearner
+  # Map method names to wrapper function names
+  wrapper_names <- list(
+    "matchit" = "wrapper_matchit",
+    "weightit" = "wrapper_weightit",
+    "hdm" = "wrapper_hdm",
+    "doubleml" = "wrapper_doubleml",
+    "tmle3" = "wrapper_tmle3",
+    "bart" = "wrapper_bart",
+    "superlearner" = "wrapper_superlearner"
   )
-  wrappers[[method]]
+
+  fn_name <- wrapper_names[[method]]
+  if (is.null(fn_name)) return(NULL)
+
+  # Use get() with inherits=TRUE to find function in any environment
+  # This allows lazy loading - wrapper only needs to exist when called
+  tryCatch(
+    get(fn_name, mode = "function", envir = parent.frame()),
+    error = function(e) {
+      # Try global environment as fallback
+      tryCatch(
+        get(fn_name, mode = "function", envir = globalenv()),
+        error = function(e) NULL
+      )
+    }
+  )
 }
 
 #' List available external methods
