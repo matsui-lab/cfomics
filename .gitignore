@@ -30,3 +30,6 @@ venv/
 renv/library/
 renv/staging/
 renv/cellar/
+
+# Git worktrees
+.worktrees/
