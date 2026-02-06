@@ -183,8 +183,8 @@ run_tcga_benchmark <- function(
 #'
 #' @return Data frame with single row of results
 run_single_tcga_job <- function(job, tcga_data, dgp_params, formula_k) {
-  # Set seed for reproducibility
-  set.seed(job$rep)
+  # Use robust seed: base_seed * multiplier + rep offset for better randomness
+  set.seed(20260206 * 1000 + job$rep)
 
   # Create semi-synthetic data
   sim_data <- create_semi_synthetic_data(tcga_data, dgp_params)
