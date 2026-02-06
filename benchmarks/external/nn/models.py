@@ -281,29 +281,24 @@ def predict_ite(model: nn.Module, X: np.ndarray) -> Dict[str, Any]:
     """Predict ITE using trained model.
 
     Args:
-        model: Trained TARNet, CFRNet, or DragonNet
-        X: Covariate array of shape (n, p)
+        model: Trained TARNet, CFRNet, or DragonNet model
+        X: Covariate matrix (numpy array)
 
     Returns:
-        Dictionary with:
-            - ite: Individual treatment effects array
-            - ate: Average treatment effect scalar
-            - y0_hat: Predicted outcomes under control
-            - y1_hat: Predicted outcomes under treatment
+        Dictionary with 'ite', 'ate', 'y0_hat', 'y1_hat'
     """
     device = next(model.parameters()).device
     model.eval()
 
     with torch.no_grad():
         X_t = torch.tensor(X, dtype=torch.float32, device=device)
-        T0 = torch.zeros(len(X), device=device)
-        T1 = torch.ones(len(X), device=device)
+        # Use dummy treatment - potential outcomes are computed independently of t
+        dummy_t = torch.zeros(len(X), device=device)
 
         if isinstance(model, DragonNet):
-            _, (y0, _), _ = model(X_t, T0)
-            _, (_, y1), _ = model(X_t, T1)
+            _, (y0, y1), _ = model(X_t, dummy_t)
         else:
-            _, (y0, y1) = model(X_t, T0)
+            _, (y0, y1) = model(X_t, dummy_t)
 
         ite = (y1 - y0).cpu().numpy()
         y0_hat = y0.cpu().numpy()
