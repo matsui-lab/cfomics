@@ -46,9 +46,14 @@ create_semi_synthetic_data <- function(tcga_data, dgp_params = list()) {
   p <- ncol(X)
 
   # Use PCA for dimension reduction if needed
-  if (p > 100) {
+  n_target_components <- 100
+  if (p > n_target_components) {
     pca <- prcomp(X, center = TRUE, scale. = TRUE)
-    X_reduced <- pca$x[, 1:100]
+    # PCA returns min(n-1, p) components; ensure we don't exceed available
+    n_available <- ncol(pca$x)
+    n_components <- min(n_target_components, n_available)
+    X_reduced <- pca$x[, 1:n_components, drop = FALSE]
+    message(sprintf("PCA: reduced %d features to %d components", p, n_components))
   } else {
     X_reduced <- scale(X)
   }
