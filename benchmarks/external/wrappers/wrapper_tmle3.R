@@ -37,11 +37,26 @@ wrapper_tmle3 <- function(X, T, Y) {
     Y = "Y"
   )
 
-  # Build a simple Super Learner stack
-  # Use GLM and mean as base learners for robustness
+  # Super Learner stack with parametric and non-parametric learners
+  # Note: For production use, consider adding Lrnr_ranger, Lrnr_xgboost
   lrnr_glm <- sl3::Lrnr_glm$new()
   lrnr_mean <- sl3::Lrnr_mean$new()
-  sl <- sl3::Lrnr_sl$new(learners = list(lrnr_glm, lrnr_mean))
+
+  # Add ridge regression for regularization
+  lrnr_ridge <- tryCatch(
+    sl3::Lrnr_glmnet$new(alpha = 0),
+    error = function(e) {
+      warning("glmnet not available, using GLM-only stack")
+      NULL
+    }
+  )
+
+  learners <- list(lrnr_glm, lrnr_mean)
+  if (!is.null(lrnr_ridge)) {
+    learners <- c(learners, list(lrnr_ridge))
+  }
+
+  sl <- sl3::Lrnr_sl$new(learners = learners)
 
   # Learner list: one learner for treatment model (A), one for outcome model (Y)
   learner_list <- list(A = sl, Y = sl)
