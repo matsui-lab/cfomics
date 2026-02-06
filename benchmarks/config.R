@@ -137,7 +137,17 @@ benchmark_config <- function() {
       list(id = "S13_nonlinear_propensity_severe",   dgp = "dgp_nonlinear_propensity", n = 1000L, p = 100L, params = list(nonlinearity = "severe")),
 
       # S14: Double nonlinear
-      list(id = "S14_double_nonlinear", dgp = "dgp_double_nonlinear", n = 1000L, p = 100L, params = list())
+      list(id = "S14_double_nonlinear", dgp = "dgp_double_nonlinear", n = 1000L, p = 100L, params = list()),
+
+      # S15: Missing data
+      list(id = "S15_mcar_10", dgp = "dgp_missing_data", n = 1000L, p = 100L,
+           params = list(missing_rate = 0.1, missing_type = "MCAR")),
+      list(id = "S15_mcar_30", dgp = "dgp_missing_data", n = 1000L, p = 100L,
+           params = list(missing_rate = 0.3, missing_type = "MCAR")),
+      list(id = "S15_mar_10", dgp = "dgp_missing_data", n = 1000L, p = 100L,
+           params = list(missing_rate = 0.1, missing_type = "MAR")),
+      list(id = "S15_mar_30", dgp = "dgp_missing_data", n = 1000L, p = 100L,
+           params = list(missing_rate = 0.3, missing_type = "MAR"))
     )
   )
 }

@@ -856,6 +856,7 @@ generate_benchmark_data <- function(dgp, params = list()) {
     "nonlinear_outcome"      = dgp_nonlinear_outcome,
     "nonlinear_propensity"   = dgp_nonlinear_propensity,
     "double_nonlinear"       = dgp_double_nonlinear,
+    "missing_data"           = dgp_missing_data,
     rlang::abort(paste0("Unknown DGP: '", dgp, "'"), class = "cfomics_unknown_dgp")
   )
   do.call(dgp_fn, params)
@@ -1000,5 +1001,72 @@ dgp_double_nonlinear <- function(n = 500, p = 500, seed = NULL) {
     propensity_score = as.numeric(ps),
     dgp_name = "double_nonlinear",
     dgp_params = list(n = n, p = p)
+  )
+}
+
+#' Generate missing data DGP (S15)
+#'
+#' Generates data with missing values under MCAR or MAR mechanisms.
+#' Omics data often has missing values, and this scenario tests how
+#' causal inference methods handle incomplete covariate data.
+#'
+#' @param n Integer, number of observations
+#' @param p Integer, number of covariates
+#' @param missing_rate Numeric, proportion of missing values (0-1)
+#' @param missing_type Character, "MCAR" or "MAR"
+#' @param seed Integer, random seed
+#' @return List with X, T, Y, true_ate, true_ite, missing_mask
+#' @export
+dgp_missing_data <- function(n = 500, p = 500,
+                              missing_rate = 0.2,
+                              missing_type = "MCAR",
+                              seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+
+  # Generate complete data first
+  X_complete <- matrix(stats::rnorm(n * p), n, p)
+  colnames(X_complete) <- paste0("X", 1:p)
+
+  beta_t <- c(rep(0.3, 10), rep(0, p - 10))
+  ps <- stats::plogis(X_complete %*% beta_t)
+  T <- stats::rbinom(n, 1, ps)
+
+  tau <- 2.0
+  beta_y <- c(rep(0.2, 10), rep(0, p - 10))
+  Y <- X_complete %*% beta_y + tau * T + stats::rnorm(n)
+
+  # Create missing mask
+  if (missing_type == "MCAR") {
+    # Missing Completely At Random: each cell has equal probability of missing
+    missing_mask <- matrix(
+      stats::rbinom(n * p, 1, missing_rate),
+      n, p
+    )
+  } else {
+    # MAR: missingness depends on observed values (X1 always observed)
+    missing_prob <- stats::plogis(-1 + 0.5 * X_complete[, 1])
+    missing_mask <- matrix(0, n, p)
+    for (j in 2:p) {
+      missing_mask[, j] <- stats::rbinom(n, 1, missing_prob * missing_rate * 2)
+    }
+  }
+
+  # Apply missing values
+  X <- X_complete
+  X[missing_mask == 1] <- NA
+
+  list(
+    X = X,
+    X_complete = X_complete,
+    T = T,
+    Y = as.numeric(Y),
+    true_ate = tau,
+    true_ite = rep(tau, n),
+    propensity_score = as.numeric(ps),
+    missing_mask = missing_mask,
+    missing_rate_actual = mean(missing_mask),
+    dgp_name = "missing_data",
+    dgp_params = list(n = n, p = p, missing_rate = missing_rate,
+                      missing_type = missing_type)
   )
 }
