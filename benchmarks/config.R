@@ -35,6 +35,10 @@ benchmark_config <- function() {
     # To include BCF, add "bcf" here and reduce n_reps or use HPC
     methods = c("gformula", "hdml", "hdps", "tmle"),
 
+    # External methods to benchmark (prefix "ext_" added automatically)
+    # tmle3 excluded from default because it requires GitHub-only packages (tmle3, sl3)
+    external_methods = c("matchit", "weightit", "hdm", "doubleml", "bart"),
+
     # Number of replications per scenario setting
     n_reps = 50L,
 
@@ -145,5 +149,7 @@ benchmark_config_smoke <- function() {
   cfg$scenarios <- cfg$scenarios[c(1, 13, 30)]  # S1_n500_p50, S3_str0, S7_good
   cfg$bcf_n_burn <- 100L
   cfg$bcf_n_iter <- 200L
+  # Subset of external methods for smoke testing (faster packages)
+  cfg$external_methods <- c("matchit", "hdm")
   cfg
 }

@@ -5,6 +5,9 @@ library(future)
 library(furrr)
 library(progressr)
 
+# Null coalescing operator (used for cfg$external_methods)
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
 # Build filename for a single job result
 make_result_filename <- function(scenario_id, method, rep, results_dir) {
   fname <- sprintf("%s__%s__rep%03d.rds", scenario_id, method, rep)
@@ -90,12 +93,86 @@ run_single_job <- function(scenario, method, rep, cfg) {
   result
 }
 
+# Run a single benchmark job for EXTERNAL method
+run_single_job_external <- function(scenario, method, rep, cfg) {
+  gen <- generate_scenario_data(scenario, rep, cfg$base_seed)
+
+  # Source external wrappers
+  external_dir <- file.path(dirname(cfg$scenarios_path), "..", "external")
+  source(file.path(external_dir, "registry.R"), local = TRUE)
+  source(file.path(external_dir, "wrappers", paste0("wrapper_", method, ".R")), local = TRUE)
+
+  result <- tryCatch({
+    ext_result <- run_external_method(
+      method = method,
+      X = gen$data[, grep("^X", names(gen$data))],
+      T = gen$data$T,
+      Y = gen$data$Y
+    )
+
+    # Compute metrics
+    metrics <- cfomics:::cf_benchmark_compute_metrics(
+      ate_hat = ext_result$ate,
+      ite_hat = ext_result$ite,
+      summary_hat = list(
+        ate_ci_lower = ext_result$ci_lower,
+        ate_ci_upper = ext_result$ci_upper
+      ),
+      truth = gen$truth
+    )
+
+    data.frame(
+      scenario_id = gen$scenario_id,
+      method = paste0("ext_", method),
+      rep = gen$rep,
+      n = gen$n,
+      p = gen$p,
+      seed = gen$seed,
+      ate_true = gen$truth$ate_true,
+      ate_hat = ext_result$ate,
+      bias_ate = metrics$bias_ate,
+      abs_bias_ate = metrics$abs_bias_ate,
+      mse_ate = metrics$mse_ate,
+      pehe = metrics$pehe,
+      coverage_ate = metrics$coverage_ate,
+      ci_len_ate = metrics$ci_len_ate,
+      time_sec = ext_result$time_sec,
+      status = "ok",
+      error_msg = NA_character_,
+      stringsAsFactors = FALSE
+    )
+  }, error = function(e) {
+    data.frame(
+      scenario_id = gen$scenario_id,
+      method = paste0("ext_", method),
+      rep = gen$rep,
+      n = gen$n,
+      p = gen$p,
+      seed = gen$seed,
+      ate_true = gen$truth$ate_true,
+      ate_hat = NA_real_,
+      bias_ate = NA_real_,
+      abs_bias_ate = NA_real_,
+      mse_ate = NA_real_,
+      pehe = NA_real_,
+      coverage_ate = NA_real_,
+      ci_len_ate = NA_real_,
+      time_sec = NA_real_,
+      status = "error",
+      error_msg = conditionMessage(e),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  result
+}
+
 # Main runner: build job list, skip completed, run in parallel
 run_benchmark <- function(cfg, retry_errors = FALSE) {
   results_dir <- cfg$results_dir
   dir.create(file.path(results_dir, "raw"), recursive = TRUE, showWarnings = FALSE)
 
-  # Build full job list
+  # Build full job list (cfomics methods)
   jobs <- list()
   idx <- 1L
   for (scenario in cfg$scenarios) {
@@ -106,7 +183,27 @@ run_benchmark <- function(cfg, retry_errors = FALSE) {
           scenario = scenario,
           method = method,
           rep = rep,
-          rds_path = rds_path
+          rds_path = rds_path,
+          is_external = FALSE
+        )
+        idx <- idx + 1L
+      }
+    }
+  }
+
+  # Add external methods to job list
+  external_methods <- cfg$external_methods %||% character(0)
+  for (scenario in cfg$scenarios) {
+    for (method in external_methods) {
+      for (rep in seq_len(cfg$n_reps)) {
+        # External methods use "ext_" prefix in filename
+        rds_path <- make_result_filename(scenario$id, paste0("ext_", method), rep, results_dir)
+        jobs[[idx]] <- list(
+          scenario = scenario,
+          method = method,
+          rep = rep,
+          rds_path = rds_path,
+          is_external = TRUE
         )
         idx <- idx + 1L
       }
@@ -114,7 +211,9 @@ run_benchmark <- function(cfg, retry_errors = FALSE) {
   }
 
   total <- length(jobs)
-  message(sprintf("Total jobs: %d", total))
+  message(sprintf("Total jobs: %d (cfomics: %d, external: %d)",
+                  total, length(cfg$methods) * length(cfg$scenarios) * cfg$n_reps,
+                  length(external_methods) * length(cfg$scenarios) * cfg$n_reps))
 
   # Filter: skip completed (unless retry_errors)
   existing <- vapply(jobs, function(j) {
@@ -160,7 +259,14 @@ run_benchmark <- function(cfg, retry_errors = FALSE) {
     furrr::future_map(pending_jobs, function(job) {
       # Source scenarios.R using absolute path from config (workers may have different cwd)
       source(cfg$scenarios_path, local = TRUE)
-      res <- run_single_job(job$scenario, job$method, job$rep, cfg)
+
+      # Dispatch to appropriate runner based on method type
+      if (isTRUE(job$is_external)) {
+        res <- run_single_job_external(job$scenario, job$method, job$rep, cfg)
+      } else {
+        res <- run_single_job(job$scenario, job$method, job$rep, cfg)
+      }
+
       # Atomic write: save to temp file first, then rename to avoid partial writes
       tmp_path <- paste0(job$rds_path, ".tmp")
       saveRDS(res, tmp_path)
