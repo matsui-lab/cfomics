@@ -115,17 +115,21 @@ class CFRNet(TARNet):
         self.alpha = alpha
 
     def ipm_loss(self, phi: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-        """Wasserstein-1 (MMD) approximation for IPM.
+        """Mean-matching IPM loss (L2 distance between group means).
 
-        Computes the L2 distance between mean representations of
-        treated and control groups as a proxy for the Wasserstein distance.
+        This is a simple linear IPM that penalizes differences in the mean
+        representations between treated and control groups. It is computationally
+        efficient but less powerful than kernel-based MMD or Wasserstein distance.
+
+        For the original CFRNet paper's MMD implementation, see:
+        https://github.com/clinicalml/cfrnet
 
         Args:
             phi: Representation tensor of shape (batch_size, hidden_dim)
-            t: Treatment tensor of shape (batch_size,)
+            t: Treatment indicator tensor of shape (batch_size,)
 
         Returns:
-            Scalar IPM loss value
+            Scalar tensor with the L2 distance between group means
         """
         t = t.bool()
         phi0 = phi[~t]
