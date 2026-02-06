@@ -402,7 +402,9 @@ dgp_heterogeneous_subgroup <- function(n = 500, p = 500,
     X = X,
     T = T,
     Y = as.numeric(Y),
-    true_ate = sum(subgroup_props * subgroup_effects),
+    # Use empirical mean of ITEs for consistency with other heterogeneous DGPs
+    # (theoretical ATE may differ from sample ATE due to finite sample variation)
+    true_ate = mean(tau),
     true_ite = tau,
     subgroup = subgroup,
     subgroup_n = table(subgroup),
