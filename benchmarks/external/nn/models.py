@@ -138,20 +138,22 @@ class CFRNet(TARNet):
 
 
 class DragonNet(nn.Module):
-    """DragonNet: propensity score co-learning.
+    """DragonNet: propensity score co-learning (Simplified Version).
 
-    Extends the TARNet architecture with an additional propensity score
-    head that jointly learns treatment assignment probability. This
-    targeted regularization encourages the representation to capture
-    information predictive of treatment.
+    Based on Shi et al. (2019) "Adapting Neural Networks for Treatment Effects".
 
-    Reference:
-        Shi, Blei, Veitch (2019). "Adapting Neural Networks for the
-        Estimation of Treatment Effects." NeurIPS.
+    NOTE: This is a simplified implementation that includes joint propensity
+    learning but omits the targeted regularization loss from the original paper.
+    For full DragonNet, see the official implementation at:
+    https://github.com/claudiashi57/dragonnet
+
+    The simplified version still provides benefits from representation sharing
+    between outcome and propensity models, but may have slightly higher bias
+    than the full targeted regularization approach.
 
     Args:
-        input_dim: Dimension of input covariates
-        hidden_dim: Dimension of hidden layers (default: 200)
+        input_dim: Number of input features
+        hidden_dim: Hidden layer dimension (default: 200)
         n_layers: Number of representation layers (default: 3)
     """
 
@@ -243,6 +245,7 @@ def train_model(
             optimizer.zero_grad()
 
             if isinstance(model, DragonNet):
+                # Simplified DragonNet loss: outcome + propensity (no targeted regularization)
                 y_pred, (y0, y1), ps = model(x_b, t_b)
                 loss_y = nn.MSELoss()(y_pred, y_b)
                 loss_ps = nn.BCELoss()(ps, t_b)
