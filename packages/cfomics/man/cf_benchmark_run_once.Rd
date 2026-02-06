@@ -46,7 +46,7 @@ if dependencies are not available.}
 \value{
 A one-row data.frame with columns:
   scenario_id, method, replicate_id, n, p, seed_dgp, seed_method,
-  ate_true, ate_hat, bias_ate, mse_ate, pehe, coverage_ate, ci_len_ate,
+  ate_true, ate_hat, bias_ate, squared_error_ate, pehe, coverage_ate, ci_len_ate,
   time_fit_sec, time_predict_sec, status, error_message
 }
 \description{

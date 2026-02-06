@@ -13,7 +13,7 @@ test_that("cf_benchmark_compute_metrics computes bias correctly", {
   
   expect_equal(metrics$bias_ate, 0.2)
   expect_equal(metrics$abs_bias_ate, 0.2)
-  expect_equal(metrics$mse_ate, 0.04)
+  expect_equal(metrics$squared_error_ate, 0.04)
 })
 
 test_that("cf_benchmark_compute_metrics computes PEHE correctly", {
@@ -51,7 +51,7 @@ test_that("cf_benchmark_compute_metrics handles perfect estimation", {
   
   expect_equal(metrics$bias_ate, 0)
   expect_equal(metrics$abs_bias_ate, 0)
-  expect_equal(metrics$mse_ate, 0)
+  expect_equal(metrics$squared_error_ate, 0)
   expect_equal(metrics$pehe, 0)
 })
 
@@ -131,7 +131,7 @@ test_that("cf_benchmark_compute_metrics handles NULL ate_hat", {
   
   expect_true(is.na(metrics$bias_ate))
   expect_true(is.na(metrics$abs_bias_ate))
-  expect_true(is.na(metrics$mse_ate))
+  expect_true(is.na(metrics$squared_error_ate))
 })
 
 test_that("cf_benchmark_compute_metrics handles NULL ite_hat", {
@@ -187,7 +187,7 @@ test_that("cf_benchmark_compute_metrics returns all numeric values", {
   
   expect_type(metrics$bias_ate, "double")
   expect_type(metrics$abs_bias_ate, "double")
-  expect_type(metrics$mse_ate, "double")
+  expect_type(metrics$squared_error_ate, "double")
   expect_type(metrics$pehe, "double")
   expect_type(metrics$coverage_ate, "double")
   expect_type(metrics$ci_len_ate, "double")
@@ -208,5 +208,5 @@ test_that("cf_benchmark_compute_metrics handles negative bias", {
   
   expect_equal(metrics$bias_ate, -0.5)
   expect_equal(metrics$abs_bias_ate, 0.5)
-  expect_equal(metrics$mse_ate, 0.25)
+  expect_equal(metrics$squared_error_ate, 0.25)
 })

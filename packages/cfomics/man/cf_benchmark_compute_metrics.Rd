@@ -25,7 +25,9 @@ A named list with:
   \itemize{
     \item bias_ate: ATE bias (ate_hat - ate_true)
     \item abs_bias_ate: Absolute ATE bias
-    \item mse_ate: Mean squared error of ATE (bias^2)
+    \item squared_error_ate: Squared error of ATE (bias^2). Note: This is
+      the squared error for a single estimate. True MSE requires averaging
+      over replications at the analysis stage.
     \item pehe: Precision in Estimation of Heterogeneous Effect
       (sqrt(mean((ite_hat - ite_true)^2)))
     \item coverage_ate: 0/1 indicator if true ATE is within CI (NA if no CI)

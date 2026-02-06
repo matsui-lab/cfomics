@@ -18,7 +18,7 @@ test_that("cf_benchmark_run_once returns correct structure", {
   expected_cols <- c(
     "scenario_id", "method", "replicate_id", "n", "p",
     "seed_dgp", "seed_method", "ate_true", "ate_hat",
-    "bias_ate", "mse_ate", "pehe", "coverage_ate", "ci_len_ate",
+    "bias_ate", "squared_error_ate", "pehe", "coverage_ate", "ci_len_ate",
     "time_fit_sec", "time_predict_sec", "status", "error_message"
   )
   

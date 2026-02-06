@@ -17,7 +17,9 @@
 #'   \itemize{
 #'     \item bias_ate: ATE bias (ate_hat - ate_true)
 #'     \item abs_bias_ate: Absolute ATE bias
-#'     \item mse_ate: Mean squared error of ATE (bias^2)
+#'     \item squared_error_ate: Squared error of ATE (bias^2). Note: This is
+#'       the squared error for a single estimate. True MSE requires averaging
+#'       over replications at the analysis stage.
 #'     \item pehe: Precision in Estimation of Heterogeneous Effect
 #'       (sqrt(mean((ite_hat - ite_true)^2)))
 #'     \item coverage_ate: 0/1 indicator if true ATE is within CI (NA if no CI)
@@ -40,7 +42,10 @@ cf_benchmark_compute_metrics <- function(
   
   bias_ate <- ate_hat - ate_true
   abs_bias_ate <- abs(bias_ate)
-  mse_ate <- bias_ate^2
+  # Note: This is the squared error for a single estimate, not MSE.
+  # True MSE requires averaging over replications: MSE = E[(estimate - true)^2]
+  # Aggregation to MSE happens at the analysis/reporting stage.
+  squared_error_ate <- bias_ate^2
   
   if (is.null(ite_hat) || !is.numeric(ite_hat) || length(ite_hat) != length(ite_true)) {
     pehe <- NA_real_
@@ -65,7 +70,7 @@ cf_benchmark_compute_metrics <- function(
   list(
     bias_ate = as.numeric(bias_ate),
     abs_bias_ate = as.numeric(abs_bias_ate),
-    mse_ate = as.numeric(mse_ate),
+    squared_error_ate = as.numeric(squared_error_ate),
     pehe = as.numeric(pehe),
     coverage_ate = as.numeric(coverage_ate),
     ci_len_ate = as.numeric(ci_len_ate)

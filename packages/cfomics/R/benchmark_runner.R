@@ -19,7 +19,7 @@
 #'
 #' @return A one-row data.frame with columns:
 #'   scenario_id, method, replicate_id, n, p, seed_dgp, seed_method,
-#'   ate_true, ate_hat, bias_ate, mse_ate, pehe, coverage_ate, ci_len_ate,
+#'   ate_true, ate_hat, bias_ate, squared_error_ate, pehe, coverage_ate, ci_len_ate,
 #'   time_fit_sec, time_predict_sec, status, error_message
 #'
 #' @export
@@ -47,7 +47,7 @@ cf_benchmark_run_once <- function(
     ate_true = NA_real_,
     ate_hat = NA_real_,
     bias_ate = NA_real_,
-    mse_ate = NA_real_,
+    squared_error_ate = NA_real_,
     pehe = NA_real_,
     coverage_ate = NA_real_,
     ci_len_ate = NA_real_,
@@ -112,7 +112,7 @@ cf_benchmark_run_once <- function(
     )
     
     result_row$bias_ate <- metrics$bias_ate
-    result_row$mse_ate <- metrics$mse_ate
+    result_row$squared_error_ate <- metrics$squared_error_ate
     result_row$pehe <- metrics$pehe
     result_row$coverage_ate <- metrics$coverage_ate
     result_row$ci_len_ate <- metrics$ci_len_ate
@@ -348,7 +348,7 @@ cf_benchmark_summarize <- function(results_df) {
       n_error <- sum(subset_df$status == "error", na.rm = TRUE)
       
       if (n_ok > 0) {
-        rmse_ate <- sqrt(mean(ok_df$mse_ate, na.rm = TRUE))
+        rmse_ate <- sqrt(mean(ok_df$squared_error_ate, na.rm = TRUE))
         mean_bias_ate <- mean(ok_df$bias_ate, na.rm = TRUE)
         mean_pehe <- mean(ok_df$pehe, na.rm = TRUE)
         coverage_rate <- mean(ok_df$coverage_ate, na.rm = TRUE)

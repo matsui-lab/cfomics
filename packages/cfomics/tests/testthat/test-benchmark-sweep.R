@@ -394,7 +394,7 @@ test_that("cf_benchmark_summarize_sweep warns on empty results", {
     ate_true = 1.0,
     ate_hat = NA,
     bias = NA,
-    mse_ate = NA,
+    squared_error_ate = NA,
     pehe = NA,
     time_sec = NA,
     status = "error",
