@@ -40,7 +40,7 @@ wrapper_weightit <- function(X, T, Y, method = "glm", estimand = "ATE") {
 
   # Fit weighted outcome model
   out_formula <- as.formula(paste("Y ~ T +", paste(cov_names, collapse = " + ")))
-  fit <- lm(out_formula, data = df, weights = weights)
+  fit <- lm(out_formula, data = df, weights = df$weights)
 
   # Get ATE with CI using marginaleffects
   ate_est <- marginaleffects::avg_comparisons(
