@@ -71,3 +71,42 @@ cf_benchmark_compute_metrics <- function(
     ci_len_ate = as.numeric(ci_len_ate)
   )
 }
+
+#' Compute computational metrics
+#'
+#' Measures execution time and peak memory usage for a function call.
+#' This is useful for benchmarking the computational cost of different
+#' causal inference methods.
+#'
+#' @param fit_fn Function to call for fitting
+#' @param ... Arguments to pass to fit_fn
+#'
+#' @return A named list with:
+#'   \itemize{
+#'     \item result: The return value from fit_fn
+#'     \item time_sec: Elapsed time in seconds
+#'     \item peak_memory_mb: Approximate peak memory usage in MB
+#'   }
+#'
+#' @export
+cf_benchmark_compute_computational_metrics <- function(fit_fn, ...) {
+  # Memory before
+  gc(reset = TRUE)
+  mem_before <- sum(gc()[, 2])
+
+  # Time
+  time_result <- system.time({
+    result <- fit_fn(...)
+  })
+
+  # Memory after
+  gc()
+  mem_after <- sum(gc()[, 2])
+  peak_memory_mb <- mem_after - mem_before
+
+  list(
+    result = result,
+    time_sec = as.numeric(time_result["elapsed"]),
+    peak_memory_mb = peak_memory_mb
+  )
+}

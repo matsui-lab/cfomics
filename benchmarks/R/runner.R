@@ -31,9 +31,16 @@ run_single_job <- function(scenario, method, rep, cfg) {
   }
 
   result <- tryCatch({
+    gc(reset = TRUE)
+    mem_before <- sum(gc()[, 2])
+
     fit_time <- system.time({
       fit <- do.call(cfomics::cf_fit, c(list(formula = fml, data = gen$data, method = method), extra_args))
     })
+
+    gc()
+    mem_after <- sum(gc()[, 2])
+    peak_memory_mb <- max(0, mem_after - mem_before)
 
     ate_hat <- predict(fit, type = "ate")
     ite_hat <- predict(fit, type = "ite")
@@ -63,6 +70,7 @@ run_single_job <- function(scenario, method, rep, cfg) {
       coverage_ate = metrics$coverage_ate,
       ci_len_ate = metrics$ci_len_ate,
       time_sec = as.numeric(fit_time["elapsed"]),
+      peak_memory_mb = peak_memory_mb,
       status = "ok",
       error_msg = NA_character_,
       stringsAsFactors = FALSE
@@ -84,6 +92,7 @@ run_single_job <- function(scenario, method, rep, cfg) {
       coverage_ate = NA_real_,
       ci_len_ate = NA_real_,
       time_sec = NA_real_,
+      peak_memory_mb = NA_real_,
       status = "error",
       error_msg = conditionMessage(e),
       stringsAsFactors = FALSE
@@ -103,12 +112,19 @@ run_single_job_external <- function(scenario, method, rep, cfg) {
   source(file.path(external_dir, "wrappers", paste0("wrapper_", method, ".R")), local = TRUE)
 
   result <- tryCatch({
+    gc(reset = TRUE)
+    mem_before <- sum(gc()[, 2])
+
     ext_result <- run_external_method(
       method = method,
       X = gen$data[, grep("^X", names(gen$data))],
       T = gen$data$T,
       Y = gen$data$Y
     )
+
+    gc()
+    mem_after <- sum(gc()[, 2])
+    peak_memory_mb <- max(0, mem_after - mem_before)
 
     # Compute metrics
     metrics <- cfomics:::cf_benchmark_compute_metrics(
@@ -137,6 +153,7 @@ run_single_job_external <- function(scenario, method, rep, cfg) {
       coverage_ate = metrics$coverage_ate,
       ci_len_ate = metrics$ci_len_ate,
       time_sec = ext_result$time_sec,
+      peak_memory_mb = peak_memory_mb,
       status = "ok",
       error_msg = NA_character_,
       stringsAsFactors = FALSE
@@ -158,6 +175,7 @@ run_single_job_external <- function(scenario, method, rep, cfg) {
       coverage_ate = NA_real_,
       ci_len_ate = NA_real_,
       time_sec = NA_real_,
+      peak_memory_mb = NA_real_,
       status = "error",
       error_msg = conditionMessage(e),
       stringsAsFactors = FALSE
