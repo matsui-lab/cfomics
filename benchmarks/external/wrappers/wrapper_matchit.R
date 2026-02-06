@@ -58,7 +58,7 @@ wrapper_matchit <- function(X, T, Y, method = "nearest", estimand = "ATT") {
 
   # Fit outcome model on matched data
   out_formula <- as.formula(paste("Y ~ T +", paste(cov_names, collapse = " + ")))
-  fit <- lm(out_formula, data = m_data, weights = weights)
+  fit <- lm(out_formula, data = m_data, weights = m_data$weights)
 
   # Get ATE with CI using marginaleffects
   # Use default vcov (TRUE) for robust standard errors
