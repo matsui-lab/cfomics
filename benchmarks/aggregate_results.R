@@ -65,7 +65,7 @@ results_list <- lapply(rds_files, function(f) {
       warning("Skipping malformed file (not a data.frame): ", basename(f))
       return(NULL)
     }
-    required_cols <- c("status", "scenario_id", "method", "mse_ate", "n", "p", "ate_true")
+    required_cols <- c("status", "scenario_id", "method", "squared_error_ate", "n", "p", "ate_true")
     if (!all(required_cols %in% names(res))) {
       missing <- setdiff(required_cols, names(res))
       warning("Skipping file with missing columns (", paste(missing, collapse=", "), "): ", basename(f))
@@ -125,9 +125,9 @@ agg_list <- lapply(names(groups), function(grp_name) {
   scenario_id <- grp$scenario_id[1]
   method <- grp$method[1]
 
-  # Compute RMSE from individual MSE values
-  # RMSE = sqrt(mean(MSE)) since MSE = (estimate - true)^2
-  rmse_ate <- sqrt(safe_mean(grp$mse_ate))
+  # Compute RMSE from individual squared errors
+  # RMSE = sqrt(mean(squared_error)) since squared_error = (estimate - true)^2
+  rmse_ate <- sqrt(safe_mean(grp$squared_error_ate))
 
   data.frame(
     scenario_id = scenario_id,
