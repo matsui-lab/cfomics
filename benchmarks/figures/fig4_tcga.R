@@ -20,7 +20,7 @@ generate_fig4_tcga <- function(results) {
     stop("'results' must be a data.frame")
   }
 
-  required_cols <- c("project", "method", "status", "mse_ate")
+  required_cols <- c("project", "method", "status", "squared_error_ate")
   missing_cols <- setdiff(required_cols, names(results))
   if (length(missing_cols) > 0) {
     stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
@@ -38,8 +38,8 @@ generate_fig4_tcga <- function(results) {
   df_agg <- df_ok %>%
     group_by(project, method) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
-      rmse_se = sqrt(var(mse_ate, na.rm = TRUE) / n()),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
+      rmse_se = sqrt(var(squared_error_ate, na.rm = TRUE) / n()),
       mean_pehe = mean(pehe, na.rm = TRUE),
       pehe_se = sd(pehe, na.rm = TRUE) / sqrt(n()),
       coverage = mean(coverage_ate, na.rm = TRUE),
@@ -111,8 +111,8 @@ generate_fig4_extended <- function(results) {
     filter(status == "ok") %>%
     group_by(project, method) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
-      rmse_se = sqrt(var(mse_ate, na.rm = TRUE) / n()),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
+      rmse_se = sqrt(var(squared_error_ate, na.rm = TRUE) / n()),
       mean_pehe = mean(pehe, na.rm = TRUE),
       pehe_se = sd(pehe, na.rm = TRUE) / sqrt(n()),
       coverage = mean(coverage_ate, na.rm = TRUE),
@@ -197,7 +197,7 @@ generate_tcga_heatmap <- function(results, metric = c("rmse", "pehe")) {
     filter(status == "ok") %>%
     group_by(project, method) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
       mean_pehe = mean(pehe, na.rm = TRUE),
       .groups = "drop"
     ) %>%
@@ -257,7 +257,7 @@ generate_tcga_ranking <- function(results) {
     filter(status == "ok") %>%
     group_by(project, method) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
       .groups = "drop"
     ) %>%
     group_by(project) %>%
