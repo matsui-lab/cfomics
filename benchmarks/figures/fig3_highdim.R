@@ -20,7 +20,7 @@ generate_fig3_highdim <- function(results) {
     stop("'results' must be a data.frame")
   }
 
-  required_cols <- c("scenario_id", "method", "status", "mse_ate", "n", "p")
+  required_cols <- c("scenario_id", "method", "status", "squared_error_ate", "n", "p")
   missing_cols <- setdiff(required_cols, names(results))
   if (length(missing_cols) > 0) {
     stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
@@ -52,8 +52,8 @@ generate_fig3_highdim <- function(results) {
     mutate(p_n_ratio = p / n) %>%
     group_by(method, p_n_ratio, n, p) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
-      rmse_se = sqrt(var(mse_ate, na.rm = TRUE) / n()),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
+      rmse_se = sqrt(var(squared_error_ate, na.rm = TRUE) / n()),
       mean_pehe = mean(pehe, na.rm = TRUE),
       n_reps = n(),
       .groups = "drop"
@@ -137,8 +137,8 @@ generate_fig3_extended <- function(results) {
     ) %>%
     group_by(method, n, p, p_n_ratio, n_label) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
-      rmse_se = sqrt(var(mse_ate, na.rm = TRUE) / n()),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
+      rmse_se = sqrt(var(squared_error_ate, na.rm = TRUE) / n()),
       mean_pehe = mean(pehe, na.rm = TRUE),
       pehe_se = sd(pehe, na.rm = TRUE) / sqrt(n()),
       mean_time = mean(time_sec, na.rm = TRUE),
@@ -233,7 +233,7 @@ generate_stability_heatmap <- function(results) {
     filter(grepl("^S2", scenario_id), status == "ok") %>%
     group_by(method, n, p) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
       .groups = "drop"
     ) %>%
     group_by(method, n) %>%
