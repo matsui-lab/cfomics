@@ -6,6 +6,40 @@
 #' @name benchmark_sweep
 NULL
 
+# Internal validation helper for sweep parameters
+.validate_sweep_params <- function(n_values = NULL, p_values = NULL,
+                                    n_reps = NULL, seed = NULL) {
+  if (!is.null(n_values)) {
+    stopifnot(
+      is.numeric(n_values),
+      all(n_values > 0),
+      all(n_values == as.integer(n_values))
+    )
+  }
+  if (!is.null(p_values)) {
+    stopifnot(
+      is.numeric(p_values),
+      all(p_values > 0),
+      all(p_values == as.integer(p_values))
+    )
+  }
+  if (!is.null(n_reps)) {
+    stopifnot(
+      is.numeric(n_reps),
+      length(n_reps) == 1,
+      n_reps > 0,
+      n_reps == as.integer(n_reps)
+    )
+  }
+  if (!is.null(seed)) {
+    stopifnot(
+      is.numeric(seed),
+      length(seed) == 1
+    )
+  }
+  invisible(TRUE)
+}
+
 #' Run dimension sweep experiment
 #'
 #' Generates datasets with varying n and p to test method performance
@@ -23,6 +57,9 @@ cf_benchmark_dimension_sweep <- function(
     n_reps = 10,
     seed = 123
 ) {
+  .validate_sweep_params(n_values = n_values, p_values = p_values,
+                         n_reps = n_reps, seed = seed)
+
   results <- list()
   idx <- 1
 
@@ -70,6 +107,9 @@ cf_benchmark_heterogeneity_sweep <- function(
     n_reps = 10,
     seed = 123
 ) {
+  .validate_sweep_params(n_reps = n_reps, seed = seed)
+  stopifnot(is.numeric(strength_values), all(strength_values >= 0))
+
   results <- list()
   idx <- 1
 
