@@ -22,7 +22,7 @@ generate_fig2_simulation <- function(results) {
     stop("'results' must be a data.frame")
   }
 
-  required_cols <- c("scenario_id", "method", "status", "mse_ate", "pehe")
+  required_cols <- c("scenario_id", "method", "status", "squared_error_ate", "pehe")
   missing_cols <- setdiff(required_cols, names(results))
   if (length(missing_cols) > 0) {
     stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
@@ -60,8 +60,8 @@ generate_fig2_simulation <- function(results) {
   df_agg <- df_filtered %>%
     group_by(scenario_id, method) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
-      rmse_ate_se = sqrt(var(mse_ate, na.rm = TRUE) / n()),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
+      rmse_ate_se = sqrt(var(squared_error_ate, na.rm = TRUE) / n()),
       mean_pehe = mean(pehe, na.rm = TRUE),
       pehe_se = sd(pehe, na.rm = TRUE) / sqrt(n()),
       coverage = mean(coverage_ate, na.rm = TRUE),
@@ -190,7 +190,7 @@ generate_fig2_extended <- function(results) {
     filter(scenario_id %in% extended_scenarios | any(scenario_id %in% extended_scenarios)) %>%
     group_by(scenario_id, method) %>%
     summarise(
-      rmse_ate = sqrt(mean(mse_ate, na.rm = TRUE)),
+      rmse_ate = sqrt(mean(squared_error_ate, na.rm = TRUE)),
       mean_pehe = mean(pehe, na.rm = TRUE),
       coverage = mean(coverage_ate, na.rm = TRUE),
       mean_time = mean(time_sec, na.rm = TRUE),
