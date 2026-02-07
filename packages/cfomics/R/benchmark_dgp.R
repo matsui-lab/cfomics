@@ -1057,6 +1057,20 @@ dgp_missing_data <- function(n = 500, p = 500,
   X <- X_complete
   X[missing_mask == 1] <- NA
 
+  # Validate missing rate
+  actual_missing_rate <- mean(is.na(X))
+  if (abs(actual_missing_rate - missing_rate) > 0.1) {
+    warning(sprintf("Actual missing rate (%.2f) differs from requested (%.2f)",
+                    actual_missing_rate, missing_rate))
+  }
+
+  # Validate dimensions match
+
+  stopifnot(
+    identical(dim(X), dim(X_complete)),
+    all(!is.na(X_complete))
+  )
+
   list(
     X = X,
     X_complete = X_complete,

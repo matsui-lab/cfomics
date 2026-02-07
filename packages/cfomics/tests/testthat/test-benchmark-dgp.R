@@ -386,3 +386,20 @@ test_that("dgp_double_nonlinear produces valid data", {
   expect_true(all(result$T %in% c(0, 1)))
   expect_equal(result$dgp_name, "double_nonlinear")
 })
+
+test_that("dgp_missing_data generates correct missing pattern", {
+  result <- dgp_missing_data(n = 200, p = 10, missing_rate = 0.2, seed = 123)
+
+  # Check structure
+  expect_true("X_complete" %in% names(result))
+  expect_true("X" %in% names(result))
+  expect_equal(dim(result$X), dim(result$X_complete))
+
+  # Check missing values exist in X but not in X_complete
+  expect_true(any(is.na(result$X)))
+  expect_false(any(is.na(result$X_complete)))
+
+  # Check approximate missing rate (within tolerance)
+  actual_rate <- mean(is.na(result$X))
+  expect_true(abs(actual_rate - 0.2) < 0.1)
+})
