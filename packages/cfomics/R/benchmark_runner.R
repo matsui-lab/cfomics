@@ -206,10 +206,10 @@ cf_benchmark_run_once <- function(
       "cavae" = {
         torch_ok <- tryCatch({
           torch <- reticulate::import("torch", convert = FALSE)
-          torch$cuda$is_available()
+          TRUE
         }, error = function(e) FALSE)
         if (!torch_ok) {
-          return("PyTorch with CUDA not available")
+          return("PyTorch not available")
         }
         if (!reticulate::py_module_available("pyro")) {
           return("Python module 'pyro' not available")
