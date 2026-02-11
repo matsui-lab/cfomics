@@ -40,17 +40,20 @@ cf_fit_dowhy_gcm <- function(X, T, Y, dag_spec,
   # R -> Python conversion
   # We pass covariate_names to fix the column name issue in Python DataFrame
 
-  res <- mod$run_dowhy_gcm(
-    X              = X,          # matrix -> numpy
-    T              = as.numeric(T),
-    Y              = as.numeric(Y),
-    edges_list     = dag_spec,
-    variable_names = covariate_names,
-    random_state   = as.integer(random_state),
-    config_path    = config_path,
-    return_metadata = return_metadata,
-    bootstrap      = bootstrap,
-    n_bootstrap    = as.integer(n_bootstrap)
+  res <- .wrap_python_call(
+    mod$run_dowhy_gcm(
+      X              = X,          # matrix -> numpy
+      T              = as.numeric(T),
+      Y              = as.numeric(Y),
+      edges_list     = dag_spec,
+      variable_names = covariate_names,
+      random_state   = as.integer(random_state),
+      config_path    = config_path,
+      return_metadata = return_metadata,
+      bootstrap      = bootstrap,
+      n_bootstrap    = as.integer(n_bootstrap)
+    ),
+    method_name = "DoWhy-GCM"
   )
 
   structure(

@@ -49,19 +49,21 @@ cf_fit_ganite <- function(X, T, Y, dag_spec = NULL,
 
   mod <- .get_ganite_module()
 
-  res <- mod$run_ganite(
-    X = X,
-    T = as.numeric(T),
-    Y = as.numeric(Y),
-    edges_list = dag_spec,
-    variable_names = covariate_names,
-    random_state = as.integer(random_state),
-    h_dim = as.integer(h_dim),
-    alpha = as.numeric(alpha),
-    iterations = as.integer(iterations),
-    batch_size = as.integer(batch_size),
-    verbose = verbose,
-    ...
+  res <- .wrap_python_call(
+    mod$run_ganite(
+      X = X,
+      T = as.numeric(T),
+      Y = as.numeric(Y),
+      edges_list = dag_spec,
+      variable_names = covariate_names,
+      random_state = as.integer(random_state),
+      h_dim = as.integer(h_dim),
+      alpha = as.numeric(alpha),
+      iterations = as.integer(iterations),
+      batch_size = as.integer(batch_size),
+      verbose = verbose
+    ),
+    method_name = "GANITE"
   )
 
   structure(

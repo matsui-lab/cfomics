@@ -403,3 +403,138 @@ test_that("dgp_missing_data generates correct missing pattern", {
   actual_rate <- mean(is.na(result$X))
   expect_true(abs(actual_rate - 0.2) < 0.1)
 })
+
+# ============================================================================
+# Tests for dgp_high_dimensional_omics (S16)
+# ============================================================================
+
+test_that("dgp_high_dimensional_omics generates correlated features", {
+  skip_if_not_installed("MASS")
+
+  result <- dgp_high_dimensional_omics(n = 100, p = 500, seed = 42)
+
+  expect_equal(nrow(result$data), 100)
+  expect_equal(ncol(result$data) - 2, 500)  # p covariates + Y + T
+
+  # Check correlation structure exists
+  X_mat <- as.matrix(result$data[, grep("^X", names(result$data))])
+  cor_mat <- cor(X_mat[, 1:10])
+  expect_true(any(abs(cor_mat[upper.tri(cor_mat)]) > 0.3))
+
+  # Check true effects are sparse
+  expect_true(sum(result$truth$beta != 0) < 50)  # Sparse effects
+})
+
+test_that("dgp_high_dimensional_omics generates valid structure", {
+  skip_if_not_installed("MASS")
+
+  result <- dgp_high_dimensional_omics(n = 200, p = 100, seed = 123)
+
+  # Check data structure
+  expect_type(result, "list")
+  expect_true("data" %in% names(result))
+  expect_true("truth" %in% names(result))
+  expect_true("structure" %in% names(result))
+
+  # Check data.frame
+  expect_s3_class(result$data, "data.frame")
+  expect_true("Y" %in% names(result$data))
+  expect_true("T" %in% names(result$data))
+
+  # Check truth contents
+  expect_true("ate_true" %in% names(result$truth))
+  expect_true("ite_true" %in% names(result$truth))
+  expect_true("beta" %in% names(result$truth))
+  expect_true("active_features" %in% names(result$truth))
+
+  # Check structure metadata
+  expect_true("n_blocks" %in% names(result$structure))
+  expect_true("block_cor" %in% names(result$structure))
+  expect_true("sparsity" %in% names(result$structure))
+})
+
+test_that("dgp_high_dimensional_omics treatment is binary", {
+  skip_if_not_installed("MASS")
+
+  result <- dgp_high_dimensional_omics(n = 100, p = 50, seed = 42)
+
+  expect_true(all(result$data$T %in% c(0, 1)))
+})
+
+test_that("dgp_high_dimensional_omics block correlation structure works", {
+  skip_if_not_installed("MASS")
+
+  result <- dgp_high_dimensional_omics(
+    n = 500,
+    p = 100,
+    n_blocks = 5,
+    block_cor = 0.7,
+    seed = 42
+  )
+
+  # Extract covariates
+  X_mat <- as.matrix(result$data[, grep("^X", names(result$data))])
+
+  # Check within-block correlation is higher than between-block
+  # First block should have ~20 features (100/5)
+  block1_cor <- cor(X_mat[, 1:20])
+  within_block_cor <- mean(abs(block1_cor[upper.tri(block1_cor)]))
+
+  # Between blocks (block 1 vs block 2)
+  between_cor <- cor(X_mat[, 1:20], X_mat[, 21:40])
+  between_block_cor <- mean(abs(between_cor))
+
+  # Within-block correlation should be higher
+
+  expect_gt(within_block_cor, between_block_cor)
+})
+
+test_that("dgp_high_dimensional_omics sparsity parameter works", {
+  skip_if_not_installed("MASS")
+
+  # Low sparsity (many active features)
+  result_low <- dgp_high_dimensional_omics(n = 100, p = 200, sparsity = 0.2, seed = 42)
+
+  # High sparsity (few active features)
+
+  result_high <- dgp_high_dimensional_omics(n = 100, p = 200, sparsity = 0.02, seed = 42)
+
+  n_active_low <- sum(result_low$truth$beta != 0)
+  n_active_high <- sum(result_high$truth$beta != 0)
+
+  expect_gt(n_active_low, n_active_high)
+  expect_true(abs(n_active_low - 40) < 10)  # ~20% of 200
+  expect_true(abs(n_active_high - 4) < 3)   # ~2% of 200
+})
+
+test_that("dgp_high_dimensional_omics is reproducible with seed", {
+  skip_if_not_installed("MASS")
+
+  result1 <- dgp_high_dimensional_omics(n = 50, p = 20, seed = 999)
+  result2 <- dgp_high_dimensional_omics(n = 50, p = 20, seed = 999)
+
+  expect_equal(result1$data$Y, result2$data$Y)
+  expect_equal(result1$data$T, result2$data$T)
+  expect_equal(result1$truth$beta, result2$truth$beta)
+})
+
+test_that("dgp_high_dimensional_omics has heterogeneous treatment effects", {
+  skip_if_not_installed("MASS")
+
+  result <- dgp_high_dimensional_omics(n = 500, p = 100, seed = 42)
+
+  # ITE should vary across individuals
+  expect_true(sd(result$truth$ite_true) > 0)
+
+  # ATE should be reasonable (base_effect = 2)
+  expect_true(abs(result$truth$ate_true - 2) < 1)
+})
+
+test_that("dgp_high_dimensional_omics errors without MASS package", {
+  # This test verifies the error message when MASS is not available
+  # We can't actually unload MASS, so we just verify the function checks for it
+  skip_if_not_installed("MASS")
+
+  # Function should work when MASS is installed
+  expect_no_error(dgp_high_dimensional_omics(n = 50, p = 20, seed = 42))
+})

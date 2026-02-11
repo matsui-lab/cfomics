@@ -23,9 +23,18 @@ Examines the distribution of propensity scores to assess whether the
 positivity assumption holds (sufficient overlap between treatment groups).
 }
 \examples{
-\dontrun{
-overlap <- cf_overlap_check(my_data, "treatment", c("age", "sex"))
+\donttest{
+# Create example data
+set.seed(42)
+n <- 100
+example_df <- data.frame(
+  age = rnorm(n, 50, 10),
+  score = rnorm(n, 100, 15),
+  treatment = rbinom(n, 1, 0.5)
+)
+
+# Check overlap/positivity assumption
+overlap <- cf_overlap_check(example_df, "treatment", c("age", "score"))
 print(overlap)
-plot(overlap)
 }
 }

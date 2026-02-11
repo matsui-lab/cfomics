@@ -227,7 +227,7 @@ dgp_baseline <- function(n = 500, p = 50, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   # Sparse confounding: first 10 variables
   n_conf <- min(10, p)
@@ -266,7 +266,7 @@ dgp_dimension_sweep <- function(n = 200, p = 1000, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   n_conf <- min(10, p)
   beta_t <- c(rep(0.5, n_conf), rep(0, p - n_conf))
@@ -304,7 +304,7 @@ dgp_heterogeneous_linear <- function(n = 500, p = 500, strength = 1.0, seed = NU
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   beta_t <- c(rep(0.3, 10), rep(0, p - 10))
   ps <- stats::plogis(X %*% beta_t)
@@ -342,7 +342,7 @@ dgp_heterogeneous_nonlinear <- function(n = 500, p = 500, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   beta_t <- c(rep(0.3, 10), rep(0, p - 10))
   ps <- stats::plogis(X %*% beta_t)
@@ -383,7 +383,7 @@ dgp_heterogeneous_subgroup <- function(n = 500, p = 500,
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   beta_t <- c(rep(0.3, 10), rep(0, p - 10))
   ps <- stats::plogis(X %*% beta_t)
@@ -428,7 +428,7 @@ dgp_heterogeneous_qualitative <- function(n = 500, p = 500, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   beta_t <- c(rep(0.3, 10), rep(0, p - 10))
   ps <- stats::plogis(X %*% beta_t)
@@ -472,7 +472,7 @@ dgp_nonlinear_confounding <- function(n = 500, p = 500,
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   linear_t <- 0.3 * X[,1] + 0.3 * X[,2]
   linear_y <- 0.2 * X[,1] + 0.2 * X[,2]
@@ -535,7 +535,7 @@ dgp_dense_confounding <- function(n = 500, p = 500,
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   base_coef <- 0.1
   coef_size <- switch(coef_scaling,
@@ -589,7 +589,7 @@ dgp_weak_overlap <- function(n = 500, p = 500,
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   coef_scale <- switch(overlap_strength,
     "good"     = 0.3,
@@ -653,7 +653,7 @@ dgp_covariate_shift <- function(n = 500, p = 500,
   } else {
     X <- matrix(stats::rnorm(n * p), n, p)
   }
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   beta_t <- c(rep(0.3, 10), rep(0, p - 10))
   ps <- stats::plogis(X %*% beta_t)
@@ -697,7 +697,7 @@ dgp_correlated_confounding <- function(n = 500, p = 500,
   if (correlation_type == "ar1") {
     # AR(1) correlation structure
     rho <- correlation_strength
-    Sigma <- rho^abs(outer(1:p, 1:p, "-"))
+    Sigma <- rho^abs(outer(seq_len(p), seq_len(p), "-"))
     X <- MASS::mvrnorm(n, mu = rep(0, p), Sigma = Sigma)
   } else if (correlation_type == "block") {
     # Block correlation: first 10 variables correlated
@@ -714,7 +714,7 @@ dgp_correlated_confounding <- function(n = 500, p = 500,
     X <- factors %*% t(loadings) * sqrt(correlation_strength) +
          matrix(stats::rnorm(n * p), n, p) * sqrt(1 - correlation_strength)
   }
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   beta_t <- c(rep(0.3, 10), rep(0, p - 10))
   ps <- stats::plogis(X %*% beta_t)
@@ -755,7 +755,7 @@ dgp_unobserved_confounding <- function(n = 500, p = 500,
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   # Unobserved confounders
   U <- matrix(stats::rnorm(n * n_unobserved), n, n_unobserved)
@@ -802,7 +802,7 @@ dgp_collider <- function(n = 500, p = 500,
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   beta_t <- c(rep(0.3, 10), rep(0, p - 10))
   ps <- stats::plogis(X %*% beta_t)
@@ -817,7 +817,7 @@ dgp_collider <- function(n = 500, p = 500,
 
   # Include collider as first column of X so methods that adjust for all X columns see it
   X <- cbind(collider, X)
-  colnames(X) <- c("collider", paste0("X", 1:p))
+  colnames(X) <- c("collider", paste0("X", seq_len(p)))
 
   list(
     X = X,
@@ -859,6 +859,7 @@ generate_benchmark_data <- function(dgp, params = list()) {
     "nonlinear_propensity"   = dgp_nonlinear_propensity,
     "double_nonlinear"       = dgp_double_nonlinear,
     "missing_data"           = dgp_missing_data,
+    "high_dimensional_omics" = dgp_high_dimensional_omics,
     rlang::abort(paste0("Unknown DGP: '", dgp, "'"), class = "cfomics_unknown_dgp")
   )
   do.call(dgp_fn, params)
@@ -882,7 +883,7 @@ dgp_nonlinear_outcome <- function(n = 500, p = 500,
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   tau <- 2.0
 
@@ -934,7 +935,7 @@ dgp_nonlinear_propensity <- function(n = 500, p = 500,
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   # Nonlinear propensity score
   if (nonlinearity == "moderate") {
@@ -979,7 +980,7 @@ dgp_double_nonlinear <- function(n = 500, p = 500, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   X <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X) <- paste0("X", 1:p)
+  colnames(X) <- paste0("X", seq_len(p))
 
   # Nonlinear propensity score
   logit_ps <- sin(2 * X[, 1]) + X[, 2]^2 * (X[, 3] > 0) +
@@ -1027,7 +1028,7 @@ dgp_missing_data <- function(n = 500, p = 500,
 
   # Generate complete data first
   X_complete <- matrix(stats::rnorm(n * p), n, p)
-  colnames(X_complete) <- paste0("X", 1:p)
+  colnames(X_complete) <- paste0("X", seq_len(p))
 
   beta_t <- c(rep(0.3, 10), rep(0, p - 10))
   ps <- stats::plogis(X_complete %*% beta_t)
@@ -1084,5 +1085,106 @@ dgp_missing_data <- function(n = 500, p = 500,
     dgp_name = "missing_data",
     dgp_params = list(n = n, p = p, missing_rate = missing_rate,
                       missing_type = missing_type)
+  )
+}
+
+#' High-dimensional omics-like DGP (S16)
+#'
+#' Generates data with correlated features, sparse true effects,
+#' and block correlation structure typical of gene expression data.
+#' This DGP is designed to mimic the characteristics of real omics
+#' data where genes within pathways are correlated and only a sparse
+#' subset of features drives the treatment effect.
+#'
+#' @param n Integer, sample size
+#' @param p Integer, number of features (default 500)
+#' @param n_blocks Integer, number of correlation blocks (default 10)
+#' @param block_cor Numeric, within-block correlation (default 0.5)
+#' @param sparsity Numeric, proportion of non-zero effects (default 0.05)
+#' @param seed Integer, random seed (optional)
+#' @return List with:
+#'   \itemize{
+#'     \item data: data.frame with columns Y, T, X1, ..., Xp
+#'     \item truth: list with ate_true, ite_true, beta, active_features
+#'     \item structure: list with n_blocks, block_cor, sparsity
+#'   }
+#' @export
+#' @examples
+#' \donttest{
+#' result <- dgp_high_dimensional_omics(n = 100, p = 200, seed = 42)
+#' dim(result$data)
+#' # Check sparse effects
+#' sum(result$truth$beta != 0)
+#' }
+dgp_high_dimensional_omics <- function(
+    n,
+    p = 500,
+    n_blocks = 10,
+    block_cor = 0.5,
+    sparsity = 0.05,
+    seed = NULL
+) {
+  if (!is.null(seed)) set.seed(seed)
+
+  if (!requireNamespace("MASS", quietly = TRUE)) {
+    rlang::abort(
+      "Package 'MASS' is required for block-correlated data generation",
+      class = "cfomics_missing_package"
+    )
+  }
+
+  # Generate block-correlated features
+  block_size <- p %/% n_blocks
+  remainder <- p %% n_blocks
+
+  X_list <- lapply(seq_len(n_blocks), function(b) {
+    bs <- if (b <= remainder) block_size + 1 else block_size
+    Sigma <- matrix(block_cor, bs, bs)
+    diag(Sigma) <- 1
+    MASS::mvrnorm(n, mu = rep(0, bs), Sigma = Sigma)
+  })
+  X <- do.call(cbind, X_list)
+  colnames(X) <- paste0("X", seq_len(ncol(X)))
+
+  # Sparse true effects
+  n_active <- max(1, ceiling(p * sparsity))
+  active_idx <- sample(p, n_active)
+  beta <- rep(0, p)
+  beta[active_idx] <- stats::rnorm(n_active, mean = 0, sd = 0.5)
+
+  # Treatment assignment (confounded by first few active features)
+  n_confounders <- min(5, n_active)
+  ps_linear <- X[, active_idx[seq_len(n_confounders)], drop = FALSE] %*%
+    beta[active_idx[seq_len(n_confounders)]]
+  ps <- stats::plogis(as.numeric(ps_linear))
+  # Clip propensity scores to ensure overlap
+  ps <- pmin(pmax(ps, 0.05), 0.95)
+  T_var <- stats::rbinom(n, 1, ps)
+
+  # Outcome with treatment effect heterogeneity
+  base_effect <- 2
+  het_effect <- X[, active_idx[1], drop = FALSE] * 0.5
+  ite_true <- base_effect + as.numeric(het_effect)
+  Y <- ite_true * T_var + as.numeric(X %*% beta) + stats::rnorm(n)
+
+  data <- data.frame(Y = Y, T = T_var, X)
+
+  list(
+    data = data,
+    truth = list(
+      ate_true = mean(ite_true),
+      ite_true = ite_true,
+      beta = beta,
+      active_features = active_idx,
+      propensity_score = ps
+    ),
+    structure = list(
+      n_blocks = n_blocks,
+      block_cor = block_cor,
+      sparsity = sparsity
+    ),
+    dgp_name = "high_dimensional_omics",
+    dgp_params = list(n = n, p = p, n_blocks = n_blocks,
+                      block_cor = block_cor, sparsity = sparsity)
   )
 }

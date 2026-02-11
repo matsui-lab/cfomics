@@ -333,7 +333,7 @@ print.cf_env_check <- function(x, ...) {
   }
 
   # Recommendations
-  unavailable <- names(x$methods)[!sapply(x$methods, `[[`, "available")]
+  unavailable <- names(x$methods)[!vapply(x$methods, `[[`, logical(1), "available")]
   if (length(unavailable) > 0) {
     cat("\n")
     cat("-------------------------------------------------------\n")

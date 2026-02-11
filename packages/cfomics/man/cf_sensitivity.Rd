@@ -21,10 +21,20 @@ Computes the E-value (VanderWeele & Ding, 2017) to quantify robustness
 of causal effect estimates to unmeasured confounding.
 }
 \examples{
-\dontrun{
-fit <- cf_fit(Y ~ T | X1 + X2, data = df, method = "gformula")
+\donttest{
+# Create example data and fit model
+set.seed(123)
+n <- 100
+demo_data <- data.frame(
+  X1 = rnorm(n),
+  X2 = rnorm(n),
+  T = rbinom(n, 1, 0.5)
+)
+demo_data$Y <- 2 * demo_data$T + 0.5 * demo_data$X1 + rnorm(n)
+
+# Fit model and run sensitivity analysis
+fit <- cf_fit(Y ~ T | X1 + X2, data = demo_data, method = "gformula")
 sens <- cf_sensitivity(fit)
 print(sens)
-plot(sens)
 }
 }

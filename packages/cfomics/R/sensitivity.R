@@ -9,11 +9,21 @@
 #' @return A list of class "cf_sensitivity"
 #' @export
 #' @examples
-#' \dontrun{
-#' fit <- cf_fit(Y ~ T | X1 + X2, data = df, method = "gformula")
+#' \donttest{
+#' # Create example data and fit model
+#' set.seed(123)
+#' n <- 100
+#' demo_data <- data.frame(
+#'   X1 = rnorm(n),
+#'   X2 = rnorm(n),
+#'   T = rbinom(n, 1, 0.5)
+#' )
+#' demo_data$Y <- 2 * demo_data$T + 0.5 * demo_data$X1 + rnorm(n)
+#'
+#' # Fit model and run sensitivity analysis
+#' fit <- cf_fit(Y ~ T | X1 + X2, data = demo_data, method = "gformula")
 #' sens <- cf_sensitivity(fit)
 #' print(sens)
-#' plot(sens)
 #' }
 cf_sensitivity <- function(result, type = "evalue", alpha = 0.05) {
   if (!inherits(result, "cfomics_result")) {
@@ -101,10 +111,10 @@ plot.cf_sensitivity <- function(x, ...) {
   rr_seq <- seq(1, max(x$evalue_point * 1.5, 3), length.out = 100)
   bias_data <- data.frame(
     rr_outcome = rr_seq,
-    rr_treatment_point = sapply(rr_seq, function(rr_uy) {
+    rr_treatment_point = vapply(rr_seq, function(rr_uy) {
       if (rr_uy <= 1) return(Inf)
       x$rr_point * (rr_uy - 1 + x$rr_point) / (rr_uy * x$rr_point - rr_uy + 1)
-    })
+    }, numeric(1))
   )
   bias_data$rr_treatment_point[bias_data$rr_treatment_point < 1] <- NA
   bias_data$rr_treatment_point[bias_data$rr_treatment_point > max(rr_seq) * 2] <- NA

@@ -1,6 +1,6 @@
 # Declare global variables used in ggplot2 NSE to avoid R CMD check NOTEs
 utils::globalVariables(c(
-  "ITE", "balanced", "group", "ps", "smd", "variable"
+  "ITE", "balanced", "ci_lower", "ci_upper", "gate", "group", "ps", "smd", "variable"
 ))
 
 #' @import methods

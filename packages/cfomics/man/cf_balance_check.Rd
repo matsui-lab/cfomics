@@ -25,10 +25,18 @@ between treatment and control groups. Useful for checking the plausibility
 of causal inference assumptions.
 }
 \examples{
-\dontrun{
-# Check balance
-balance <- cf_balance_check(my_data, "treatment", c("age", "sex"))
+\donttest{
+# Create example data
+set.seed(42)
+n <- 100
+example_df <- data.frame(
+  age = rnorm(n, 50, 10),
+  score = rnorm(n, 100, 15),
+  treatment = rbinom(n, 1, 0.5)
+)
+
+# Check covariate balance
+balance <- cf_balance_check(example_df, "treatment", c("age", "score"))
 print(balance)
-plot(balance)
 }
 }

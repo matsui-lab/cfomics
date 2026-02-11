@@ -240,7 +240,7 @@ cf_benchmark_run_once <- function(
 #' @param base_seed Integer, base random seed (seeds will be base_seed + 1:n_reps)
 #' @param effect_size Numeric, base treatment effect size
 #' @param noise_sd Numeric, standard deviation of outcome noise
-#' @param formula_template Character, template for formula (default: "Y ~ T | %s")
+#' @param formula_template Character, template for formula (default: "Y ~ T | \%s")
 #' @param covariates_k Integer, number of covariates to include in formula
 #' @param allow_python_env_install Logical, whether to allow Python environment
 #'   installation (default: FALSE)

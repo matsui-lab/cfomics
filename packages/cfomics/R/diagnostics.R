@@ -12,11 +12,19 @@
 #' @return A data.frame of class "cf_balance" with balance statistics
 #' @export
 #' @examples
-#' \dontrun{
-#' # Check balance
-#' balance <- cf_balance_check(my_data, "treatment", c("age", "sex"))
+#' \donttest{
+#' # Create example data
+#' set.seed(42)
+#' n <- 100
+#' example_df <- data.frame(
+#'   age = rnorm(n, 50, 10),
+#'   score = rnorm(n, 100, 15),
+#'   treatment = rbinom(n, 1, 0.5)
+#' )
+#'
+#' # Check covariate balance
+#' balance <- cf_balance_check(example_df, "treatment", c("age", "score"))
 #' print(balance)
-#' plot(balance)
 #' }
 cf_balance_check <- function(data, treatment, covariates = NULL, threshold = 0.1) {
   # Handle Bioconductor objects
@@ -33,7 +41,7 @@ cf_balance_check <- function(data, treatment, covariates = NULL, threshold = 0.1
 
   # Get covariates
   if (is.null(covariates)) {
-    numeric_cols <- sapply(data, is.numeric)
+    numeric_cols <- vapply(data, is.numeric, logical(1))
     covariates <- names(data)[numeric_cols]
     covariates <- setdiff(covariates, treatment)
   }
@@ -188,10 +196,19 @@ plot.cf_balance <- function(x, ...) {
 #' @return A list of class "cf_overlap" with overlap diagnostics
 #' @export
 #' @examples
-#' \dontrun{
-#' overlap <- cf_overlap_check(my_data, "treatment", c("age", "sex"))
+#' \donttest{
+#' # Create example data
+#' set.seed(42)
+#' n <- 100
+#' example_df <- data.frame(
+#'   age = rnorm(n, 50, 10),
+#'   score = rnorm(n, 100, 15),
+#'   treatment = rbinom(n, 1, 0.5)
+#' )
+#'
+#' # Check overlap/positivity assumption
+#' overlap <- cf_overlap_check(example_df, "treatment", c("age", "score"))
 #' print(overlap)
-#' plot(overlap)
 #' }
 cf_overlap_check <- function(data, treatment, covariates,
                              method = c("logistic")) {

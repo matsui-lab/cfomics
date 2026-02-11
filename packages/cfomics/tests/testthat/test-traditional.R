@@ -88,6 +88,27 @@ test_that("cf_fit_gformula basic execution", {
   expect_true("ate_ci_upper" %in% names(summary_stats))
 })
 
+test_that("IPW returns NA for ITE with informative message", {
+  skip_if_not_installed("ipw")
+  skip_if_not_installed("survey")
+
+  set.seed(123)
+  n <- 100
+  data <- data.frame(
+    Y = rnorm(n),
+    T = rbinom(n, 1, 0.5),
+    X1 = rnorm(n)
+  )
+
+  fit <- cf_fit(Y ~ T | X1, data = data, method = "ipw")
+
+  # ITE should be NA (IPW cannot estimate individual effects)
+  expect_true(all(is.na(fit$fit$res$ite)))
+
+  # ATE should still work (not NA)
+  expect_false(is.na(fit$fit$res$ate))
+})
+
 test_that("gformula prediction on new data", {
   set.seed(123)
   n <- 200

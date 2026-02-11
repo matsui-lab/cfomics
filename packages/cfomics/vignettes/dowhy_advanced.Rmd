@@ -16,6 +16,11 @@ knitr::opts_chunk$set(
 
 ## Overview
 
+**Note:** This vignette demonstrates advanced features that require Python with DoWhy
+installed. All code examples are shown for reference but not executed (`eval=FALSE`).
+To run these examples interactively, first set up your Python environment as described
+in the "Python Environment Setup" vignette.
+
 This vignette demonstrates the advanced features of the DoWhy-GCM integration in cfomics, including bootstrap confidence intervals for ATE estimation, visualization capabilities, and metadata logging.
 
 ## Setup

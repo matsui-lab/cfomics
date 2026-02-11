@@ -81,8 +81,8 @@ cf_table <- function(fit, format = c("data.frame", "markdown", "latex", "html"),
 
   # Convert to data.frame
   summary_df <- data.frame(
-    Metric = sapply(rows, `[`, 1),
-    Value = sapply(rows, `[`, 2),
+    Metric = vapply(rows, `[`, character(1), 1),
+    Value = vapply(rows, `[`, character(1), 2),
     stringsAsFactors = FALSE
   )
 

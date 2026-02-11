@@ -56,19 +56,27 @@ cf_fit_cavae <- function(X, T, Y,
     num_layers = as.integer(num_layers),
     num_samples = as.integer(num_samples)
   )
-  
-  cevae$fit(
-    x_tensor,
-    t_tensor,
-    y_tensor,
-    num_epochs = as.integer(num_epochs),
-    batch_size = as.integer(batch_size),
-    learning_rate = learning_rate,
-    learning_rate_decay = 0.1,
-    weight_decay = 1e-4
+
+  # Wrap Python fitting call with user-friendly error handling
+  .wrap_python_call(
+    cevae$fit(
+      x_tensor,
+      t_tensor,
+      y_tensor,
+      num_epochs = as.integer(num_epochs),
+      batch_size = as.integer(batch_size),
+      learning_rate = learning_rate,
+      learning_rate_decay = 0.1,
+      weight_decay = 1e-4
+    ),
+    method_name = "CAVAE"
   )
-  
-  ite_py <- cevae$ite(x_tensor)
+
+  # Wrap Python ITE estimation with user-friendly error handling
+  ite_py <- .wrap_python_call(
+    cevae$ite(x_tensor),
+    method_name = "CAVAE"
+  )
   
   # Ensure proper type conversion from torch tensor to R numeric vector
   # First detach from GPU, convert to numpy, then to R

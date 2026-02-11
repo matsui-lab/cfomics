@@ -34,16 +34,28 @@ cf_fit_drlearner <- function(X, T, Y,
   Y_py <- reticulate::r_to_py(as.numeric(Y))
   
   dr <- DRLearner(cv = as.integer(cv))
-  dr$fit(Y_py, T_py, X = X_py)
-  
+
+  # Wrap Python fitting call with user-friendly error handling
+  .wrap_python_call(
+    dr$fit(Y_py, T_py, X = X_py),
+    method_name = "DRLearner"
+  )
+
   n <- nrow(X)
   n_treatments <- length(unique(T))
-  
+
+  # Wrap Python effect estimation with user-friendly error handling
   if (n_treatments == 2) {
-    ite_py <- dr$effect(X_py, T0 = 0L, T1 = 1L)
+    ite_py <- .wrap_python_call(
+      dr$effect(X_py, T0 = 0L, T1 = 1L),
+      method_name = "DRLearner"
+    )
     ite <- reticulate::py_to_r(ite_py)
   } else {
-    cme_py <- dr$const_marginal_effect(X_py)
+    cme_py <- .wrap_python_call(
+      dr$const_marginal_effect(X_py),
+      method_name = "DRLearner"
+    )
     ite <- reticulate::py_to_r(cme_py)
   }
   

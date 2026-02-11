@@ -36,7 +36,7 @@ cf_benchmark_run(
 
 \item{noise_sd}{Numeric, standard deviation of outcome noise}
 
-\item{formula_template}{Character, template for formula (default: "Y ~ T | %s")}
+\item{formula_template}{Character, template for formula (default: "Y ~ T | \%s")}
 
 \item{covariates_k}{Integer, number of covariates to include in formula}
 

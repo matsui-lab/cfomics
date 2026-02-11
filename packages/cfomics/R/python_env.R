@@ -199,8 +199,8 @@ cf_list_python_envs <- function() {
   
   env_status <- data.frame(
     method = names(.cfomics_env_specs),
-    env_name = sapply(.cfomics_env_specs, function(x) x$name),
-    installed = sapply(.cfomics_env_specs, function(x) x$name %in% existing_envs),
+    env_name = vapply(.cfomics_env_specs, function(x) x$name, character(1)),
+    installed = vapply(.cfomics_env_specs, function(x) x$name %in% existing_envs, logical(1)),
     stringsAsFactors = FALSE
   )
   

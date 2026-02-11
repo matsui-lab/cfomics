@@ -491,7 +491,7 @@ cf_benchmark_run_sweep <- function(
     p <- ncol(dgp$X)
     k <- min(formula_k, p)
 
-    cov_names <- paste0("X", 1:k)
+    cov_names <- paste0("X", seq_len(k))
     fml <- stats::as.formula(paste("Y ~ T |", paste(cov_names, collapse = " + ")))
 
     data <- data.frame(

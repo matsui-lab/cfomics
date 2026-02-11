@@ -160,19 +160,26 @@ cf_fit_ipw <- function(X, T, Y,
   
   y0_hat <- df$Y - df$A * ate
   y1_hat <- df$Y + (1 - df$A) * ate
-  
-  ite <- rep(ate, nrow(df))
-  
+
+
+  ite <- rep(NA_real_, nrow(df))
+  rlang::inform(
+    c("IPW estimates population-level ATE only.",
+      "i" = "Individual treatment effects (ITE) are not available with this method.",
+      "i" = "Consider using 'grf' or 'drlearner' for individual-level estimates."),
+    class = "cfomics_ipw_no_ite"
+  )
+
   summary_stats <- list(
     ate = ate,
     ate_ci_lower = ate_ci_lower,
     ate_ci_upper = ate_ci_upper,
-    ite_mean = ate,
-    ite_std = 0,
+    ite_mean = NA_real_,
+    ite_std = NA_real_,
     ite_quantiles = list(
-      q05 = ate,
-      q50 = ate,
-      q95 = ate
+      q05 = NA_real_,
+      q50 = NA_real_,
+      q95 = NA_real_
     )
   )
   

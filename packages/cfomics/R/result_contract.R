@@ -279,9 +279,10 @@ create_cf_meta <- function(formula,
     bootstrap = bootstrap,
     random_state = random_state,
     preprocess = preprocess,
-    timestamp = Sys.time(),
     software_versions = list(
       R = r_version,
+      cfomics = pkg_versions$cfomics,
+      timestamp = Sys.time(),
       packages = pkg_versions
     )
   )

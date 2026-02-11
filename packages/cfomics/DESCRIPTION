@@ -49,6 +49,7 @@ Suggests:
     BiocStyle,
     ggplot2,
     gridExtra,
+    patchwork,
     grf,
     glmnet,
     bcf,
@@ -61,3 +62,4 @@ VignetteBuilder: knitr
 Encoding: UTF-8
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3
+LazyData: true

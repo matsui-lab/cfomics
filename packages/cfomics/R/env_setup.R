@@ -63,7 +63,7 @@ cf_setup <- function(level = c("standard", "minimal", "full"),
   # Final check
   if (verbose) {
     check <- cf_check_env(verbose = FALSE)
-    n_available <- sum(sapply(check$methods, `[[`, "available"))
+    n_available <- sum(vapply(check$methods, `[[`, logical(1), "available"))
 
     cat("\n")
     cat("=======================================================\n")

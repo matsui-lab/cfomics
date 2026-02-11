@@ -154,7 +154,7 @@ extract_manual_se <- function(data, outcome, treatment, covariates, col_data,
   # Extract covariates (X) from colData
   if (is.null(covariates)) {
     # Use all numeric columns except outcome and treatment
-    numeric_cols <- sapply(col_data, is.numeric)
+    numeric_cols <- vapply(col_data, is.numeric, logical(1))
     covariates <- names(col_data)[numeric_cols]
     covariates <- setdiff(covariates, c(outcome, treatment))
   }
