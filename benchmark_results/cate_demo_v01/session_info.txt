@@ -1,0 +1,25 @@
+CATE Demo v0.1 — Session Info
+Timestamp: 2026-02-15 09:40:45.226714
+Seed: 20260215
+
+R version 4.3.3 (2024-02-29)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 24.04.3 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.12.0 
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.12.0
+
+locale:
+[1] C
+
+time zone: Etc/UTC
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+ [1] compiler_4.3.3    Matrix_1.6-5      cli_3.6.5         tools_4.3.3      
+ [5] reticulate_1.45.0 Rcpp_1.1.1        grid_4.3.3        grf_2.5.0        
+ [9] jsonlite_2.0.0    rlang_1.1.7       png_0.1-8         lattice_0.22-5   

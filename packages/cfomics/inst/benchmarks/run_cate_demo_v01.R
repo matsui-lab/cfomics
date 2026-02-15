@@ -250,30 +250,27 @@ check_method_available <- function(method) {
       NULL
     },
     "drlearner" = {
-      if (!reticulate::py_available(initialize = FALSE))
-        return("Python not available")
       tryCatch({
-        reticulate::py_available(initialize = TRUE)
+        if (!reticulate::py_available(initialize = TRUE))
+          return("Python not available")
         if (!reticulate::py_module_available("econml"))
           return("econml Python module not available")
         NULL
       }, error = function(e) conditionMessage(e))
     },
     "ganite" = {
-      if (!reticulate::py_available(initialize = FALSE))
-        return("Python not available")
       tryCatch({
-        reticulate::py_available(initialize = TRUE)
+        if (!reticulate::py_available(initialize = TRUE))
+          return("Python not available")
         if (!reticulate::py_module_available("tensorflow"))
           return("tensorflow Python module not available")
         NULL
       }, error = function(e) conditionMessage(e))
     },
     "cavae" = {
-      if (!reticulate::py_available(initialize = FALSE))
-        return("Python not available")
       tryCatch({
-        reticulate::py_available(initialize = TRUE)
+        if (!reticulate::py_available(initialize = TRUE))
+          return("Python not available")
         if (!reticulate::py_module_available("torch"))
           return("torch Python module not available")
         if (!reticulate::py_module_available("pyro"))
@@ -324,8 +321,8 @@ fit_predict_bcf <- function(X_full, T_full, Y_full, test_idx, seed) {
     x_control  = X_full,
     x_moderate = X_full,
     pihat      = pihat,
-    nburn      = 1000L,
-    nsim       = 2000L
+    nburn      = 200L,
+    nsim       = 500L
   )
 
   tau_samples <- bcf_fit$tau
@@ -395,7 +392,7 @@ fit_predict_ganite <- function(X_train, T_train, Y_train, X_test, seed) {
 
   model$fit(
     X_train_np, T_train_np, Y_train_np,
-    iterations = 5000L,
+    iterations = 500L,
     batch_size = batch_size,
     verbose    = FALSE
   )
@@ -437,7 +434,7 @@ fit_predict_cavae <- function(X_train, T_train, Y_train, X_test, seed) {
 
   cevae$fit(
     x_train_t, t_train_t, y_train_t,
-    num_epochs          = 30L,
+    num_epochs          = 10L,
     batch_size          = batch_size,
     learning_rate       = 1e-3,
     learning_rate_decay = 0.1,
@@ -707,7 +704,8 @@ main <- function() {
   invisible(results)
 }
 
-# Run if executed as a script (not sourced)
-if (!interactive() || identical(Sys.getenv("RUN_CATE_DEMO"), "1")) {
+# Run if executed as a script (not sourced); skip if SKIP_MAIN is set
+if ((!interactive() || identical(Sys.getenv("RUN_CATE_DEMO"), "1")) &&
+    !identical(Sys.getenv("SKIP_MAIN"), "1")) {
   main()
 }
