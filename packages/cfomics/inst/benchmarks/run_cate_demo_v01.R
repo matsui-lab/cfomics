@@ -34,6 +34,9 @@ CONFIG <- list(
   out_dir     = file.path("benchmark_results", "cate_demo_v01")
 )
 
+# Global: path to ganite.py (resolved at runtime in main())
+GANITE_PY_PATH <- NULL
+
 # DGP fixed parameters (from spec v0.1)
 DGP_PARAMS <- list(
   n_genes   = 30L,
@@ -364,9 +367,14 @@ fit_predict_drlearner <- function(X_train, T_train, Y_train, X_test, seed) {
 # Use GANITEModel class directly for proper train/test.
 
 fit_predict_ganite <- function(X_train, T_train, Y_train, X_test, seed) {
+  # Resolve ganite.py path (works without cfomics loaded)
+  ganite_path <- GANITE_PY_PATH
+  if (is.null(ganite_path) || !dir.exists(ganite_path)) {
+    stop("Cannot find ganite.py. Set GANITE_PY_PATH before running.")
+  }
   ganite_mod <- reticulate::import_from_path(
     module = "ganite",
-    path   = system.file("python", package = "cfomics")
+    path   = ganite_path
   )
   np <- reticulate::import("numpy")
 
@@ -641,35 +649,24 @@ main <- function() {
   message(sprintf("Output: %s", CONFIG$out_dir))
   message("")
 
-  # --- Load cfomics ---
-  # Try pkgload::load_all / devtools::load_all first (development), then library()
-  pkg_path <- NULL
+  # --- Resolve ganite.py path (no cfomics package load needed) ---
+  py_path <- NULL
   candidates <- c(
-    file.path(getwd(), "packages", "cfomics"),
-    file.path(getwd(), "cfomics"),
-    file.path(dirname(dirname(getwd())), "cfomics")
+    file.path(getwd(), "packages", "cfomics", "inst", "python"),
+    file.path(getwd(), "cfomics", "inst", "python"),
+    file.path(dirname(dirname(getwd())), "cfomics", "inst", "python")
   )
   for (cand in candidates) {
-    if (dir.exists(cand) && file.exists(file.path(cand, "DESCRIPTION"))) {
-      pkg_path <- cand
+    if (file.exists(file.path(cand, "ganite.py"))) {
+      py_path <- cand
       break
     }
   }
-
-  if (!is.null(pkg_path)) {
-    message(sprintf("Loading cfomics from source: %s", pkg_path))
-    if (requireNamespace("pkgload", quietly = TRUE)) {
-      suppressMessages(pkgload::load_all(pkg_path, export_all = TRUE))
-    } else if (requireNamespace("devtools", quietly = TRUE)) {
-      suppressMessages(devtools::load_all(pkg_path, export_all = TRUE))
-    } else {
-      stop("pkgload or devtools required to load cfomics from source.")
-    }
-  } else if (requireNamespace("cfomics", quietly = TRUE)) {
-    library(cfomics)
-    message("Loaded cfomics from installed package")
+  GANITE_PY_PATH <<- py_path
+  if (!is.null(py_path)) {
+    message(sprintf("Python scripts: %s", py_path))
   } else {
-    stop("cfomics package not found. Run from the repo root or install the package.")
+    message("WARNING: ganite.py not found — GANITE method will fail")
   }
 
   # --- Create output directory ---
