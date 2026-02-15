@@ -642,7 +642,7 @@ main <- function() {
   message("")
 
   # --- Load cfomics ---
-  # Try devtools::load_all first (development), then library()
+  # Try pkgload::load_all / devtools::load_all first (development), then library()
   pkg_path <- NULL
   candidates <- c(
     file.path(getwd(), "packages", "cfomics"),
@@ -658,7 +658,13 @@ main <- function() {
 
   if (!is.null(pkg_path)) {
     message(sprintf("Loading cfomics from source: %s", pkg_path))
-    suppressMessages(devtools::load_all(pkg_path, export_all = TRUE))
+    if (requireNamespace("pkgload", quietly = TRUE)) {
+      suppressMessages(pkgload::load_all(pkg_path, export_all = TRUE))
+    } else if (requireNamespace("devtools", quietly = TRUE)) {
+      suppressMessages(devtools::load_all(pkg_path, export_all = TRUE))
+    } else {
+      stop("pkgload or devtools required to load cfomics from source.")
+    }
   } else if (requireNamespace("cfomics", quietly = TRUE)) {
     library(cfomics)
     message("Loaded cfomics from installed package")
