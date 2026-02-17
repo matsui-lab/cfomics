@@ -1,0 +1,100 @@
+=== R Session Info ===
+R version 4.5.2 (2025-10-31)
+Platform: x86_64-pc-linux-gnu
+Running under: Ubuntu 24.04.3 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Etc/UTC
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] cfomics_0.4.0  testthat_3.3.2
+
+loaded via a namespace (and not attached):
+ [1] Matrix_1.7-4      jsonlite_2.0.0    compiler_4.5.2    brio_1.1.5       
+ [5] Rcpp_1.1.1        grf_2.5.0         parallel_4.5.2    png_0.1-8        
+ [9] fastmap_1.2.0     reticulate_1.44.1 lattice_0.22-7    R6_2.6.1         
+[13] igraph_2.2.2      Formula_1.2-5     desc_1.4.3        rprojroot_2.1.1  
+[17] rlang_1.1.7       cachem_1.1.0      DiceKriging_1.6.1 fs_1.6.6         
+[21] pkgload_1.5.0     otel_0.2.0        memoise_2.0.1     cli_3.6.5        
+[25] withr_3.0.2       magrittr_2.0.4    grid_4.5.2        rstudioapi_0.18.0
+[29] remotes_2.5.0     devtools_2.4.6    rappdirs_0.3.4    lifecycle_1.0.5  
+[33] vctrs_0.7.1       glue_1.8.0        sessioninfo_1.2.3 pkgbuild_1.4.8   
+[37] purrr_1.2.1       tools_4.5.2       usethis_3.2.1     pkgconfig_2.0.3  
+[41] ellipsis_0.3.2   
+
+=== Config ===
+$seed_base
+[1] 20260215
+
+$R
+[1] 1
+
+$n_values
+[1]  100  500 1000
+
+$covsets
+[1] "AS"  "ASG"
+
+$methods
+[1] "causal_forest" "drlearner"     "ganite"        "cevae"        
+
+$train_frac
+[1] 0.8
+
+$out_dir
+[1] "sandbox/demov03/results"
+
+$rho_A
+[1] 0.4
+
+$rho_S
+[1] 0.2
+
+$sigma_G
+[1] 0.2
+
+$w_A
+[1] 1
+
+$w_S
+[1] 1
+
+$w_G
+[1] 1
+
+$s_tau
+[1] 5
+
+$beta_A
+[1] 3
+
+$beta_S
+[1] 2
+
+$s_eta
+[1] 10
+
+$mu0
+[1] 120
+
+$sigma_y
+[1] 5
+
+
+=== cfomics git hash ===
+7b7284a825d0a439ae95b310cec3bc01989cb2b7 
