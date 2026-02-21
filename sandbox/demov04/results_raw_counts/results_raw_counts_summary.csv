@@ -1,0 +1,5 @@
+"n","effect_type","covset","method","mean_rmse","sd_rmse","n_success"
+500,"linear","SexGene","causal_forest",0.585263014634266,NA,1
+500,"linear","SexOnly","causal_forest",0.497293439277943,NA,1
+500,"linear","SexGene","drlearner",0.817173108177158,NA,1
+500,"linear","SexOnly","drlearner",0.444234866073703,NA,1

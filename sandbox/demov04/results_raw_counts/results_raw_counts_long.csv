@@ -1,0 +1,5 @@
+"rep","n","effect_type","covset","method","seed_condition","rmse_tau","notes"
+1,500,"linear","SexOnly","causal_forest",20260425,0.497293439277943,"OK"
+1,500,"linear","SexOnly","drlearner",20260425,0.444234866073703,"OK (cv=5)"
+1,500,"linear","SexGene","causal_forest",20260425,0.585263014634266,"OK"
+1,500,"linear","SexGene","drlearner",20260425,0.817173108177158,"OK (cv=5)"
